@@ -5,7 +5,7 @@
 # the file COPYING for details.
 
 #
-# $Id: Setup.pm,v 1.18 2002/02/19 20:30:17 skud Exp $
+# $Id: Setup.pm,v 1.22 2002/04/25 16:42:35 segfault- Exp $
 #
 
 package    CGI::FormMagick;
@@ -40,7 +40,10 @@ BEGIN: {
 }
 
 ok($fm = CGI::FormMagick->new(type => 'file', source => "t/simple.xml"), "create fm object");
+ok($fm2 = CGI::FormMagick->new(type => 'file', source => "t/simple.xml",
+	charset => 'ISO-8859-1'), "create fm object with charset");
 $fm->parse_xml(); # suck in structure without display()ing
+$fm2->parse_xml(); # suck in structure without display()ing
 
 =end testing
 
@@ -97,6 +100,10 @@ The $fm->{xml} hash has the following form:
         ]
     };
 
+Note on lexicon files:
+If FormMagick was given a charset argument, then the output will be encoded
+in that character set. Otherwise, it will be in UTF-8.
+
 =for testing
 is(ref($fm->{xml}), "HASH", "parse_xml gives us a hash");
 is($fm->{xml}->{title}, "FormMagick demo application", 
@@ -117,20 +124,58 @@ is($fm->{xml}->{pages}->[0]->{fields}->[0]->{label}, "first name",
     "Picked up field title");
 is($fm->{xml}{pages}[0]{fields}[0]{description}, "description here", 
     "Picked up field description");
+print "Charset parsing tests:\n";
+is(ref($fm2->{xml}), "HASH", "parse_xml gives us a hash");
+is($fm2->{xml}->{title}, "FormMagick demo application", 
+    "Picked up form title");
+is(ref($fm2->{xml}->{pages}), "ARRAY", 
+    "parse_xml gives us an array of pages");
+is(ref($fm2->{xml}->{pages}->[0]), "HASH", 
+    "each page is a hashref");
+is($fm2->{xml}->{pages}->[0]->{name}, "Personal", 
+    "Picked up first page's name");
+is($fm2->{xml}->{pages}->[0]->{title}, "Personal details", 
+    "Picked up first page's title");
+is(ref($fm2->{xml}->{pages}->[0]->{fields}), "ARRAY", 
+    "Page's fields are an array");
+is(ref($fm2->{xml}->{pages}->[0]->{fields}->[0]), "HASH", 
+    "Field is a hashref");
+is($fm2->{xml}->{pages}->[0]->{fields}->[0]->{label}, "first name", 
+    "Picked up field title");
+is($fm2->{xml}{pages}[0]{fields}[0]{description}, "description here", 
+    "Picked up field description");
 
 =cut
 
 sub parse_xml {
     my $self = shift;
 
-    my $p = new XML::Parser (Style => 'Tree');
+    my $p;    
+    if ($self->{charset})
+    {
+        $p = new XML::Parser (Style => 'Tree', 
+                              ProtocolEncoding => $self->{charset});
+    }
+    else
+    {
+        $p = new XML::Parser (Style => 'Tree');
+    }
 
     my $xml;
 
     if ($self->{inputtype} eq "file") {
         $xml = $p->parsefile($self->{source} || default_xml_filename());
     } elsif ($self->{inputtype} eq "string") {
-        $xml = $p->parse($self->{source});
+        # Catch errors in parse_xml and save the output for debugging.
+        my $result = eval { $xml = $p->parse($self->{source}) };
+        unless ($result)
+        {
+            open OUT, ">/tmp/FormMagick_XML_$$";
+            print OUT $self->{source};
+            print OUT "\n\n<!--\nERRORS:\n$@\n-->\n";
+            croak "Whoops, parse_xml() failed. The data and error messages were
+saved to /tmp/FormMagick_XML_$$\n";
+        }
     } else {
         croak 'Invalid source type specified (should be "file" or "string")';
     }

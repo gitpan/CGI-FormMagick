@@ -12,6 +12,7 @@ WriteMakefile(
 				Text::Template => 1.23,
 				Class::ParamParser => 1.0401,
 				CGI::Persistent => 0.21,
+                                Text::Iconv => 1.2
 
 	# required for validation routines only.  I'm commenting them
 	# out for now.

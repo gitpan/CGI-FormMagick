@@ -3,6 +3,8 @@
 package CGI::FormMagick;
 use I18N::LangTags;
 use Text::Template 'fill_in_string';
+use Text::Iconv;
+
 require Exporter;
 @ISA = qw(Exporter);
 @EXPORT = qw(localise);
@@ -187,9 +189,9 @@ is($mfm->localise('This text contains a {$params_var}.'),
 =cut
 
 sub localise {
-    my $fm = shift;
-    my $string = shift || "";
-    my $hashref = shift(@_) || {};
+    my ($fm, $string, $hashref) = @_;
+    $string  = "" unless defined $string;
+    $hashref = {} unless keys %$hashref;
     my $text;
     my %params = (%{$fm->{lexicon}}, $fm->_get_lexicon_params(), %$hashref);
     if (my $trans = $fm->{lexicon}->{$string}) {
@@ -248,7 +250,7 @@ sub get_lexicon {
     my $self = shift;
     my (@lexicons) = @_;
 
-    my @preferred_languages = get_languages();
+    my @preferred_languages = $self->get_languages();
 
     my %lexicons;
     foreach my $lex (@lexicons) {
@@ -305,7 +307,8 @@ sub _get_lexicon_params
     my %params;
     foreach my $p (@{$self->{lexicon_params}})
     {
-	%params = (%params, eval("\$self->$p") );
+        my %lex = eval("\$self->$p");
+	%params = (%params, %lex) if keys %lex;
     }
     return %params;
 }
@@ -325,6 +328,13 @@ sub clean_lexicon {
     my $self = shift;
     my @dirty_lexicons = @_;
     my %return_lexicon;
+    my $iconv;
+
+    if ($self->{charset})
+    {
+        $iconv = Text::Iconv->new('UTF8', $self->{charset});
+    }
+
     foreach my $dl (@dirty_lexicons) {
         # strip first element (the language) which is not needed
         my @stripped = @$dl;
@@ -335,7 +345,9 @@ sub clean_lexicon {
             $base  = $e->{content}->[4]->[2];
             $trans = $e->{content}->[8]->[2];
             if ($base && $trans) {
-                $return_lexicon{$base} = $trans;
+                $return_lexicon{$base} = ($iconv 
+                                         ? $iconv->convert($trans)
+                                         : $trans);
             }
         }
     }
@@ -392,7 +404,8 @@ sub get_languages {
 
     # split on the comma to get elements. some may have ;q=n.n attached
     # and there may be spaces.
-	my @temp = split ",", CGI->http('HTTP_ACCEPT_LANGUAGE');
+    my $hal = CGI->http('HTTP_ACCEPT_LANGUAGE') || "";
+    my @temp = split ",", $hal;
 
     my @langs;
     foreach my $item (@temp)

@@ -11,7 +11,7 @@
 #
 
 #
-# $Id: HTML.pm,v 1.58 2002/04/04 17:18:42 skud Exp $
+# $Id: HTML.pm,v 1.61 2002/05/07 17:34:41 skud Exp $
 #
 
 package    CGI::FormMagick;
@@ -30,6 +30,7 @@ CGI::FormMagick::HTML - HTML output routines for FormMagick
 
 use strict;
 use_ok('CGI::FormMagick');
+use CGI;
 use vars qw($fm);
 
 $fm = new CGI::FormMagick(type => 'file', source => "t/simple.xml");
@@ -136,7 +137,8 @@ sub print_form_footer {
     my $url = $fm->{cgi}->url(-relative => 1);
   
     # here's how we clear our state IDs
-    print qq(<p><a href="$url">Start over again</a></p>) 
+    print qq(<p><a href="$url">),$fm->localise('Start over again'),
+          qq(</a></p>) 
   	if $fm->{startoverlink};
 
     # this is for debugging purposes
@@ -207,7 +209,7 @@ sub print_field_description {
     my $fm = shift;
     my $d = shift;
     $d = $fm->localise($d);
-    print qq(<tr><td><div class="fielddescription" colspan=2>$d</div></td></tr>);
+    print qq(<tr><td colspan=2><div class="fielddescription">$d</div></td></tr>);
 }
 
 

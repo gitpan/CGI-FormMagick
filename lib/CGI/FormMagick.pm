@@ -3,12 +3,12 @@
 # the file COPYING for details.
 
 #
-# $Id: FormMagick.pm,v 1.114 2002/04/12 20:23:26 skud Exp $
+# $Id: FormMagick.pm,v 1.119 2002/05/07 17:34:41 skud Exp $
 #
 
 package    CGI::FormMagick;
 
-my $VERSION = $VERSION = "0.80";
+my $VERSION = $VERSION = "0.82";
 
 use XML::Parser;
 use Text::Template;
@@ -120,6 +120,13 @@ specify a source which is either a literal string or a scalar variable.
 Defaults to a filename matching that of your script, only with an
 extension of .xml (we got this idea from XML::Simple).
 
+=item charset
+
+Tell FormMagick that the XML input uses the specified character set encoding.
+Defaults to 'none' which is good enough for English text and US ASCII. Any
+other characters may cause parse errors. Valid charsets are "ISO-8859-1", 
+"UTF-8", "UTF-16", or "US-ASCII". This option is case sensitive.
+
 =back
 
 =begin testing
@@ -131,7 +138,10 @@ BEGIN: {
 
 ok(CGI::FormMagick->can('new'), "We can call new");
 ok($fm = CGI::FormMagick->new(type => 'file', source => "t/simple.xml"), "create fm object"); 
+ok($fm2 = CGI::FormMagick->new(type => 'string', source => '<form></form>',
+	charset => 'US-ASCII'), 'We can pass charset');
 isa_ok($fm, 'CGI::FormMagick');
+isa_ok($fm2, 'CGI::FormMagick');
 $fm->parse_xml();
 
 =end testing
@@ -149,6 +159,7 @@ sub new {
 #    $self->{inputtype} 	= uc($args{type}) 	|| "file";
     $self->{inputtype} 	= $args{type} 	|| "file";
     $self->{source}     = $args{source};
+    $self->{charset}    = $args{charset} || undef;
 
     foreach (qw(PREVIOUSBUTTON RESETBUTTON STARTOVERLINK NEXTBUTTON)) {
         if (exists $args{$_}) {
@@ -738,7 +749,9 @@ finds it it evals the options string and assigns the result to a hash.
 If it finds a comma (but no little => arrows) it figures it's a list,
 and evals it and assigns the results to an array.  Otherwise, it tries
 to interpret what's there as the name of a subroutine in the scope of
-the script that called FormMagick.
+the script that called FormMagick, expecting to get back a value which 
+is either an arrayref or a hashref, which it will deal with appropriately
+in either case.
 
 A few gotchas to look out for:
 

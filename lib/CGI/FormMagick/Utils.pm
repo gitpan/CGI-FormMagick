@@ -5,7 +5,7 @@
 # the file COPYING for details.
 
 #
-# $Id: Utils.pm,v 1.27 2002/02/19 20:30:17 skud Exp $
+# $Id: Utils.pm,v 1.28 2002/05/07 17:34:41 skud Exp $
 #
 
 package    CGI::FormMagick;
@@ -174,7 +174,8 @@ sub parse_template {
     if (-e $filename) {
         my $template = new Text::Template (
             type => 'file', 
-            source => $filename
+            source => $filename,
+            UNTAINT => 1,
         );
         $output = $template->fill_in();
     }

@@ -216,6 +216,12 @@ sub AUTOLOAD {
 sub DESTROY {
 }
 
+sub by_params_precedence {
+    local $PARAMS_PRECEDENCE{$a} ||= 0;
+    local $PARAMS_PRECEDENCE{$b} ||= 0;
+    return $PARAMS_PRECEDENCE{$a} <=> $PARAMS_PRECEDENCE{$b};
+}
+
 =head1 FUNCTIONS AND METHODS
 
 Note that all the methods defined below are static, so information specific to
@@ -323,9 +329,7 @@ sub make_html_tag {
 	}
 				
 	my $param_str = '';
-	foreach my $param ( sort {
-			$PARAMS_PRECEDENCE{$b} <=> $PARAMS_PRECEDENCE{$a}
-			} keys %tag_params ) {
+	foreach my $param ( sort by_params_precedence keys %tag_params ) {
 		next if( $NO_VALUE_PARAMS{$param} and !$tag_params{$param} );
 		$param_str .= ' '.uc( $param );
 		unless( $NO_VALUE_PARAMS{$param} ) {
@@ -395,8 +399,7 @@ sub make_html_tag_group {
 	
 	my $tag_name_uc = uc($tag_name);
 	my $ra_text = delete( $tag_params{$PARAM_TEXT} );
-	my @param_seq = sort { $PARAMS_PRECEDENCE{$b} 
-		<=> $PARAMS_PRECEDENCE{$a} } keys %tag_params;
+	my @param_seq = sort by_params_precedence keys %tag_params;
 	my @new_tags = ();
 
 	foreach my $index (0..$max_tag_ind) {

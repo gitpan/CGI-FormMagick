@@ -1,5 +1,26 @@
 Revision history for Perl extension FormMagick.
 
+0.82
+----
+Fixed up various warnings that were thrown to the httpd error log.
+
+Templated form headers/footers are now untainted automatically.  Note 
+that this could be considered a security problem; suggestions on how to
+handle it more securely would be welcomed.  (See the parse_template
+routine in CGI::FormMagick::Utils if you're interested.)
+
+0.81
+----
+Now fails more gracefully on XML errors, dumping the XML to a file in
+/tmp as a side effect
+
+You can now specify the default XML character set encoding as an
+argument to new() (defaults to undef).  In future versions this should
+be changed to work on a per-lexicon basis, but for now we will use this
+stopgap measure.
+
+Fixed a bug which was causing fallback_language not to work.
+
 0.80
 ----
 Langtags are now smashed to lowercase throughout.
