@@ -5,7 +5,7 @@
 # This software is distributed under the GNU General Public License; see
 # the file COPYING for details.
 #
-# $Id: Network.pm,v 1.7 2002/01/30 00:45:14 adrian_chung Exp $
+# $Id: Network.pm,v 1.8 2002/02/05 22:09:04 skud Exp $
 #
 
 package    CGI::FormMagick::Validator;
@@ -38,22 +38,22 @@ BEGIN: {
     use_ok("CGI::FormMagick::Validator");
 }
 
-isnt( url('http://'), "OK" , "http:// is not a complete URL");
-isnt( url('ftp://'), "OK" , "ftp:// is not a complete URL");
-isnt( url('abc'), "OK" , "abc is not a valid URL");
+isnt( url(undef, 'http://'), "OK" , "http:// is not a complete URL");
+isnt( url(undef, 'ftp://'), "OK" , "ftp:// is not a complete URL");
+isnt( url(undef, 'abc'), "OK" , "abc is not a valid URL");
 isnt( url(), "OK" , "undef is not a valid URL");
-isnt( url(''), "OK" , "empty string is not a valid URL");
-is( url('http://a.bc'), "OK" , "http://a.bc is a valid URL");
-is( url('ftp://a.bc:21/'), "OK" , "ftp://a.bc:21 is a valid URL");
-isnt( url('http:///a.bc'), "OK" , "http:///a.bc has too many slashes");
-isnt( url('http://a_a.bc'), "OK" , "Underscores are not allowed in URLs");
+isnt( url(undef, ''), "OK" , "empty string is not a valid URL");
+is( url(undef, 'http://a.bc'), "OK" , "http://a.bc is a valid URL");
+is( url(undef, 'ftp://a.bc:21/'), "OK" , "ftp://a.bc:21 is a valid URL");
+isnt( url(undef, 'http:///a.bc'), "OK" , "http:///a.bc has too many slashes");
+isnt( url(undef, 'http://a_a.bc'), "OK" , "Underscores are not allowed in URLs");
 
 =end testing 
 
 =cut
 
 sub url {
-    my $data = $_[0];
+    my ($fm, $data) = @_;
     if ($data && $data =~ m!(http|ftp)://[a-zA-Z0-9][a-zA-Z0-9/.-/]!) {
         return "OK";
     } else {
@@ -71,19 +71,19 @@ C<$data =~ /.+\@.+\..+/>
 Note: not fully compliant with the entire gamut of RFC 822 addressing ;)
 
 =for testing
-is( email_simple('a@b.c'), "OK" , 'a@b.c is a valid email address');
-is( email_simple('a+b@c.d'), "OK" , 'a+b@c.d is a valid email address');
-is( email_simple('a-b=c@d.e'), "OK" , 'a-b=c@d.e is a valid email address');
-isnt( email_simple('abc'), "OK" , 'abc is not a valid email address');
-isnt( email_simple('a@b'), "OK" , 'a@b is not a valid email address');
-isnt( email_simple('@b.c'), "OK" , '@b.c is not a valid email address');
+is( email_simple(undef, 'a@b.c'), "OK" , 'a@b.c is a valid email address');
+is( email_simple(undef, 'a+b@c.d'), "OK" , 'a+b@c.d is a valid email address');
+is( email_simple(undef, 'a-b=c@d.e'), "OK" , 'a-b=c@d.e is a valid email address');
+isnt( email_simple(undef, 'abc'), "OK" , 'abc is not a valid email address');
+isnt( email_simple(undef, 'a@b'), "OK" , 'a@b is not a valid email address');
+isnt( email_simple(undef, '@b.c'), "OK" , '@b.c is not a valid email address');
 isnt( email_simple(), "OK" , 'undef is not a valid email address');
-isnt( email_simple(""), "OK" , 'empty string is not a valid email address');
+isnt( email_simple(undef, ""), "OK" , 'empty string is not a valid email address');
 
 =cut
 
 sub email_simple {
-    my $data = $_[0];
+    my ($fm, $data) = @_;
     if (not defined $data ) {
         return "You must enter an email address.";
     } elsif ($data =~ /.+\@.+\..+/) {
@@ -100,15 +100,15 @@ sub email_simple {
 The data looks like an internet domain name or hostname.
 
 =for testing
-is( domain_name("abc.com"), "OK" , "abc.com is a valid domain name");
-isnt( domain_name("abc"), "OK" , "abc is not a valid domain name");
+is( domain_name(undef, "abc.com"), "OK" , "abc.com is a valid domain name");
+isnt( domain_name(undef, "abc"), "OK" , "abc is not a valid domain name");
 isnt( domain_name(), "OK" , "undef is not a valid domain name");
-isnt( domain_name(""), "OK" , "empty string is not a valid domain name");
+isnt( domain_name(undef, ""), "OK" , "empty string is not a valid domain name");
 
 =cut
 
 sub domain_name {
-    my $data = shift;
+    my ($fm, $data) = @_;
     if ($data && $data =~ /^([a-z\d\-]+\.)+[a-z]{1,3}\.?$/o ) {
         return "OK";
     } else {
@@ -123,21 +123,21 @@ sub domain_name {
 The data looks like a valid IP number.
 
 =for testing
-is(ip_number('1.2.3.4'), 'OK', "ip_number('1.2.3.4') should be valid.");
-is(ip_number('0.0.0.0'), 'OK', "ip_number('0.0.0.0') should be valid.");
-is(ip_number('255.255.255.255'), 'OK', "ip_number('255.255.255.255') should be valid.");
-isnt(ip_number('1.2.3'), 'OK', "ip_number('1.2.3') shouldn't be valid.");
-isnt(ip_number('1000.2.3.4'), 'OK', "ip_number('1000.2.3.4') shouldn't be valid.");
-isnt(ip_number('256.2.3.4'), 'OK', "ip_number('256.2.3.4') shouldn't be valid.");
-isnt(ip_number('a.2.3.4'), 'OK', "ip_number('a.2.3.4') shouldn't be valid.");
-isnt(ip_number('1,2,3,4'), 'OK', "ip_number('1,2,3,4') shouldn't be valid.");
-isnt(ip_number(''), 'OK', "ip_number('') shouldn't be valid.");
+is(ip_number(undef, '1.2.3.4'), 'OK', "ip_number('1.2.3.4') should be valid.");
+is(ip_number(undef, '0.0.0.0'), 'OK', "ip_number('0.0.0.0') should be valid.");
+is(ip_number(undef, '255.255.255.255'), 'OK', "ip_number('255.255.255.255') should be valid.");
+isnt(ip_number(undef, '1.2.3'), 'OK', "ip_number('1.2.3') shouldn't be valid.");
+isnt(ip_number(undef, '1000.2.3.4'), 'OK', "ip_number('1000.2.3.4') shouldn't be valid.");
+isnt(ip_number(undef, '256.2.3.4'), 'OK', "ip_number('256.2.3.4') shouldn't be valid.");
+isnt(ip_number(undef, 'a.2.3.4'), 'OK', "ip_number('a.2.3.4') shouldn't be valid.");
+isnt(ip_number(undef, '1,2,3,4'), 'OK', "ip_number('1,2,3,4') shouldn't be valid.");
+isnt(ip_number(undef, ''), 'OK', "ip_number('') shouldn't be valid.");
 isnt(ip_number(), 'OK', "ip_number(undef) shouldn't be valid.");
 
 =cut
 
 sub ip_number {
-    my $data = shift;
+    my ($fm, $data) = @_;
 
     return undef unless defined $data;
 
@@ -161,16 +161,16 @@ sub ip_number {
 The data looks like a good, valid username
 
 =for testing
-is( username("abc"), "OK" , "abc is a valid username");
-isnt( username("123"), "OK" , "123 is not a valid username");
+is( username(undef, "abc"), "OK" , "abc is a valid username");
+isnt( username(undef, "123"), "OK" , "123 is not a valid username");
 isnt( username(), "OK" , "undef is not a valid username");
-isnt( username(""), "OK" , "empty string is not a valid username");
-isnt( username("  "), "OK" , "spaces is not a valid username");
+isnt( username(undef, ""), "OK" , "empty string is not a valid username");
+isnt( username(undef, "  "), "OK" , "spaces is not a valid username");
 
 =cut
 
 sub username {
-    my $data = $_[0];
+    my ($fm, $data) = @_;
 
     if ($data && $data =~ /[a-zA-Z]{3,8}/ ) {
         return "OK";
@@ -186,15 +186,16 @@ sub username {
 The data looks like a good password
 
 =for testing
-isnt( password("abc"), "OK" , "abc is not a good password");
+isnt( password(undef, "abc"), "OK" , "abc is not a good password");
 isnt( password(), "OK" , "undef is not a good password");
-isnt( password(""), "OK" , "empty string is not a good password");
-is( password("ab1C23FouR!"), "OK" , "ab1C23FouR! is a good password");
+isnt( password(undef, ""), "OK" , "empty string is not a good password");
+is( password(undef, "ab1C23FouR!"), "OK" , "ab1C23FouR! is a good password");
 
 =cut
 
 sub password {
-    $_ = shift;  # easier to match on $_
+    my ($fm, $data) = @_;
+    $_ = $data;
     if (not defined $_) {
         return "You must provide a password.";
     } elsif (/\d/ and /[A-Z]/ and /[a-z]/ and /\W/ and length($_) > 6) {
@@ -211,18 +212,19 @@ sub password {
 The data looks like a good MAC address
 
 =for testing
-isnt( mac_address("string"), "OK" , "string is not a good MAC address");
+isnt( mac_address(undef, "string"), "OK" , "string is not a good MAC address");
 isnt( mac_address(), "OK" , "undef is not a good MAC address");
-isnt( mac_address(""), "OK" , "empty string is not a good MAC address");
-isnt( mac_address("01:23:45"), "OK" , "01:23:45 is too short for a MAC address");
-isnt( mac_address("01:23:45:67:89:AB:CD"), "OK" , "01:23:45:67:89:AB:CD is too long for a MAC address");
-is( mac_address("08:00:cf:2b:12:34"), "OK" , "08:00:cf:2b:12:34 is a good MAC address");
-is( mac_address("08:00:CF:2B:12:34"), "OK" , "08:00:CF:2B:12:34 is a good MAC address");
+isnt( mac_address(undef, ""), "OK" , "empty string is not a good MAC address");
+isnt( mac_address(undef, "01:23:45"), "OK" , "01:23:45 is too short for a MAC address");
+isnt( mac_address(undef, "01:23:45:67:89:AB:CD"), "OK" , "01:23:45:67:89:AB:CD is too long for a MAC address");
+is( mac_address(undef, "08:00:cf:2b:12:34"), "OK" , "08:00:cf:2b:12:34 is a good MAC address");
+is( mac_address(undef, "08:00:CF:2B:12:34"), "OK" , "08:00:CF:2B:12:34 is a good MAC address");
 
 =cut
 
 sub mac_address {
-    $_ = lc shift;  # easier to match on $_
+    my ($fm, $data) = @_;
+    $_ = lc $data;  # easier to match on $_
     if (not defined $_) {
         return "You must provide a MAC address.";
     } elsif (/^([0-9a-f][0-9a-f](:[0-9a-f][0-9a-f]){5})$/) {

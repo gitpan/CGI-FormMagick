@@ -5,7 +5,7 @@
 # the file COPYING for details.
 
 #
-# $Id: Events.pm,v 1.9 2002/02/04 20:10:15 skud Exp $
+# $Id: Events.pm,v 1.10 2002/02/05 19:26:08 skud Exp $
 #
 
 package    CGI::FormMagick;
@@ -49,7 +49,7 @@ sub form_pre_event {
     $self->debug_msg("This is the form pre event");
 
     # find out what the form pre_event action is. 
-    my $pre_form_routine = $self->{xml}->{'PRE-EVENT'} || return;
+    my $pre_form_routine = $self->{xml}->{'pre-event'} || return;
 
     $self->do_external_routine($pre_form_routine);
 }
@@ -79,7 +79,7 @@ sub form_post_event {
         $self->debug_msg("Validation successful.");
 
         # find out what the form post_event action is. 
-        my $post_form_routine = $self->{xml}->{'POST-EVENT'};
+        my $post_form_routine = $self->{xml}->{'post-event'};
 
         unless ($self->do_external_routine($post_form_routine)) {
   
@@ -110,7 +110,7 @@ XXX NEEDS TESTS
 sub page_pre_event {
     my ($self) = @_;
     $self->debug_msg("This is the page pre-event.");
-    if (my $pre_page_routine = $self->page->{'PRE-EVENT'}) {
+    if (my $pre_page_routine = $self->page->{'pre-event'}) {
         $self->debug_msg("The pre-routine is $pre_page_routine");
         $self->do_external_routine($pre_page_routine);
     }
@@ -129,7 +129,7 @@ XXX NEEDS TESTS
 sub page_post_event {
     my ($self) = @_;
     $self->debug_msg("This is the page post-event.");
-    if (my $post_page_routine = $self->page->{'POST-EVENT'}) {
+    if (my $post_page_routine = $self->page->{'post-event'}) {
       $self->debug_msg("The post-routine is $post_page_routine");
       $self->do_external_routine($post_page_routine);
     }

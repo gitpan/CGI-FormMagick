@@ -35,13 +35,11 @@ error message on failure.
 
 =head2 How do I add translations into another language?
 
-Use the add_lexicon() method:
-
-    $f->add_lexicon("fr", { "Yes" => "Oui", "No" => "Non" });
+Use the C<lexicon> element in your XML.
 
 =head2 How do I do extra processing when a user clicks "Next"?
 
-Use a POST-EVENT on the PAGE element.  Create a subroutine that does
+Use a C<post-event> on the C<page> element.  Create a subroutine that does
 what you want:
 
     sub process_credit_card {
@@ -53,7 +51,7 @@ what you want:
 
 =head2 How do I choose which page to go to based on user input?
 
-Use a PAGE POST-EVENT and set the value of the "wherenext" CGI
+Use a C<page post-event> and set the value of the "wherenext" CGI
 parameter:
 
     sub my_post_page_event {
@@ -69,9 +67,11 @@ parameter:
 
 =head2 General troubleshooting tips
 
-Try turning on debugging when you invoke FormMagick:
+Try turning on debugging:
     
-    my $f = new CGI::FormMagick( DEBUG => 1 );
+    $f->debug(1);
+
+This will print out general debugging messages to the web page.
 
 =head2 Why isn't my data preserved from one page to the next?
 

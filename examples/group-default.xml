@@ -1,10 +1,10 @@
-<FORM TITLE="Grouped fields default value test" HEADER="head.tmpl"
-FOOTER="foot.tmpl" POST-EVENT="post">
-    <PAGE NAME="select">
-    <DESCRIPTION>
-    <![CDATA[
+<form title="Grouped fields default value test" header="head.tmpl"
+footer="foot.tmpl" post-event="post">
+    <page name="select">
+    <description>
+    <![cdata[
         This script is intended to test that default values get set
-        correctly in SELECT dropdowns and RADIO button groups. To test
+        correctly in 'select' dropdowns and 'radio' button groups. To test
         <b>this, do the following: 1) note that the default "blue"
         is</b>
         chosen for the first page.  2) choose "green" instead.  3) hit
@@ -14,16 +14,16 @@ FOOTER="foot.tmpl" POST-EVENT="post">
         note that "OSX" is selected, again letting user choice override
         the default.
     ]]>
-    </DESCRIPTION>
-        <TITLE>Select dropdown test</TITLE>
-        <FIELD ID="colour" TYPE="SELECT" VALUE="blue" OPTIONS="'red','green','blue'">
-            <LABEL>Choose a colour</LABEL>
-        </FIELD>
-    </PAGE>
-    <PAGE NAME="radio">
-        <TITLE>Radio button test</TITLE>
-        <FIELD ID="os" TYPE="RADIO" VALUE="BSD" OPTIONS="'Linux','BSD','OSX'">
-            <LABEL>Choose an operating system</LABEL>
-        </FIELD>
-    </PAGE>
-</FORM>
+    </description>
+        <title>Select dropdown test</title>
+        <field id="colour" type="select" value="blue" options="'red','green','blue'">
+            <label>Choose a colour</label>
+        </field>
+    </page>
+    <page name="radio">
+        <title>Radio button test</title>
+        <field id="os" type="radio" value="BSD" options="'Linux','BSD','OSX'">
+            <label>Choose an operating system</label>
+        </field>
+    </page>
+</form>

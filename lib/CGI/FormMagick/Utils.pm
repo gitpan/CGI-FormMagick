@@ -5,7 +5,7 @@
 # the file COPYING for details.
 
 #
-# $Id: Utils.pm,v 1.25 2002/02/04 22:53:25 skud Exp $
+# $Id: Utils.pm,v 1.26 2002/02/05 00:41:05 adrian_chung Exp $
 #
 
 package    CGI::FormMagick;
@@ -40,7 +40,7 @@ BEGIN: {
     use CGI::FormMagick;
 }
 
-ok($fm = CGI::FormMagick->new(TYPE => 'FILE', SOURCE => "t/simple.xml"), "create fm object");
+ok($fm = CGI::FormMagick->new(type => 'file', source => "t/simple.xml"), "create fm object");
 
 =end testing
 
@@ -56,7 +56,7 @@ sub debug_msg {
 
 =head2 $fm->get_page_by_name($name)
 
-get a page given the NAME attribute.  Returns the numeric index of
+get a page given the name attribute.  Returns the numeric index of
 the page, suitable for $wherenext.
 
 =for testing
@@ -67,8 +67,8 @@ is($fm->get_page_by_name('Personal'), 0, "get page by name");
 sub get_page_by_name {
     my ($self, $name) = @_;
 
-    for (my $i = 0; $i < scalar(@{$self->{xml}->{PAGES}}); $i += 1) { 
-        return $i if $self->{xml}->{PAGES}->[$i]->{NAME} eq $name;
+    for (my $i = 0; $i < scalar(@{$self->{xml}->{pages}}); $i += 1) { 
+        return $i if $self->{xml}->{pages}->[$i]->{name} eq $name;
     }
     return undef;   # if you can't find that page   
 }
@@ -87,7 +87,7 @@ is(ref($fm->get_page_by_number(0)), 'HASH', "get page by number");
 
 sub get_page_by_number {
     my ($self, $pagenum) = @_;
-    return $self->{xml}->{PAGES}->[$pagenum];
+    return $self->{xml}->{pages}->[$pagenum];
 }
 
 =pod
@@ -172,8 +172,8 @@ sub parse_template {
     my $output = "";
     if (-e $filename) {
         my $template = new Text::Template (
-            TYPE => 'FILE', 
-            SOURCE => $filename
+            type => 'file', 
+            source => $filename
         );
         $output = $template->fill_in();
     }
@@ -184,10 +184,10 @@ sub parse_template {
 
 Figures out whether or not we're on the last page.  Used by
 print_buttons() in particular to tell whether to print a Finish button,
-and to tell whether to do the FORM POST-EVENT.
+and to tell whether to do the form post-event.
 
 =for testing
-is(@{$fm->form->{PAGES}}, 3, "We have three pages");
+is(@{$fm->form->{pages}}, 3, "We have three pages");
 local $fm->{page_number} = 1;
 ok(! $fm->is_last_page(), "It's not the last page");
 local $fm->{page_number} = 3;
@@ -199,7 +199,7 @@ ok($fm->is_last_page(), "It's past the last page, but we cope OK");
 
 sub is_last_page {
     my $self = shift;
-    if ($self->{page_number} >= @{$self->form->{PAGES}} - 1) {
+    if ($self->{page_number} >= @{$self->form->{pages}} - 1) {
         return 1;
     } else {
         return 0;
@@ -211,10 +211,10 @@ sub is_last_page {
 =head2 is_first_page()
 
 Figures out whether or not we're on the first page.  Used mostly to
-figure out whether we want to do the FORM PRE-EVENT.
+figure out whether we want to do the form pre-event.
 
 =for testing
-is(@{$fm->form->{PAGES}}, 3, "We have three pages");
+is(@{$fm->form->{pages}}, 3, "We have three pages");
 local $fm->{page_number} = 0;
 ok($fm->is_first_page(), "Is page 0 the first page");
 local $fm->{page_number} = 1;
@@ -299,7 +299,7 @@ ok(!$fm->finished(), "User is NOT finished (last page, didn't press enter)");
 sub finished {
     my $self = shift;
     if ($self->{cgi}->param("Finish") 
-        and $self->{page_number} >= @{$self->form->{PAGES}}) {
+        and $self->{page_number} >= @{$self->form->{pages}}) {
         # note the difference between this test and the one in is_last_page()
         # ... it's a fencepost thing.  In the case of is_last_page we want
         # to see if we're *on* the last page, but here we want to see if
@@ -307,7 +307,7 @@ sub finished {
 
         return 1;
     } elsif ($self->user_pressed_enter() 
-        and $self->{page_number} >= @{$self->form->{PAGES}}) {
+        and $self->{page_number} >= @{$self->form->{pages}}) {
         return 1;
     } else {
         return 0;
@@ -386,7 +386,7 @@ is(ref $page, "HASH", "page data structure is a hash");
 
 sub page {
     my ($fm) = @_;
-    return $fm->form->{PAGES}->[$fm->{page_number}]
+    return $fm->form->{pages}->[$fm->{page_number}]
 }
 
 =pod
@@ -400,10 +400,10 @@ application/x-www-urlencoded.
 
 =for testing
 local $fm->{page_number} = 0;
-local $fm->page->{FIELDS}->[0]->{TYPE} = 'TEXT';
+local $fm->page->{fields}->[0]->{type} = 'text';
 is($fm->get_page_enctype(), 'application/x-www-urlencoded', 
    'Detected standard enctype');
-local $fm->page->{FIELDS}->[0]->{TYPE} = 'FILE';
+local $fm->page->{fields}->[0]->{type} = 'file';
 is($fm->get_page_enctype(), 'multipart/form-data',
    'Detected multipart enctype');
 
@@ -412,8 +412,8 @@ is($fm->get_page_enctype(), 'multipart/form-data',
 sub get_page_enctype
 {
     my $self = shift;
-    foreach my $field (@{$self->page->{FIELDS}}) {
-	if ($field->{TYPE} eq 'FILE') {
+    foreach my $field (@{$self->page->{fields}}) {
+	if ($field->{type} eq 'file') {
 	    return 'multipart/form-data';
 	}
     }

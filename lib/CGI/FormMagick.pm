@@ -3,12 +3,12 @@
 # the file COPYING for details.
 
 #
-# $Id: FormMagick.pm,v 1.95 2002/02/04 22:58:17 skud Exp $
+# $Id: FormMagick.pm,v 1.101 2002/02/06 21:46:45 skud Exp $
 #
 
 package    CGI::FormMagick;
 
-my $VERSION = $VERSION = "0.55";
+my $VERSION = $VERSION = "0.60";
 
 use XML::Parser;
 use Text::Template;
@@ -43,14 +43,12 @@ CGI::FormMagick - easily create CGI form-based applications
 
   # all options available to new()
   my $f = new CGI::FormMagick(
-      TYPE => FILE,  
-      SOURCE => $myxmlfile, 
+      type => file,  
+      source => $myxmlfile, 
   );
 
   # other types available
-  my $f = new CGI::FormMagick(TYPE => STRING,  SOURCE => $data );
-
-  $f->add_lexicon("fr", { "Yes" => "Oui", "No" => "Non"});
+  my $f = new CGI::FormMagick(type => string,  source => $data );
 
   $f->display();
 
@@ -106,12 +104,12 @@ optional arguments (as a hash):
 
 =over 4
 
-=item TYPE
+=item type
 
-Defaults to "FILE".  "STRING" is also available, in which case you must
-specify a SOURCE which is either a literal string or a scalar variable.
+Defaults to "file".  "string" is also available, in which case you must
+specify a source which is either a literal string or a scalar variable.
 
-=item SOURCE
+=item source
 
 Defaults to a filename matching that of your script, only with an
 extension of .xml (we got this idea from XML::Simple).
@@ -126,7 +124,7 @@ BEGIN: {
 }
 
 ok(CGI::FormMagick->can('new'), "We can call new");
-ok($fm = CGI::FormMagick->new(TYPE => 'FILE', SOURCE => "t/simple.xml"), "create fm object"); 
+ok($fm = CGI::FormMagick->new(type => 'file', source => "t/simple.xml"), "create fm object"); 
 isa_ok($fm, 'CGI::FormMagick');
 
 =end testing
@@ -141,8 +139,9 @@ sub new {
     bless $self;
 
     $self->{debug} 	= $args{DEBUG} 		|| 0;
-    $self->{inputtype} 	= uc($args{TYPE}) 	|| "FILE";
-    $self->{source}     = $args{SOURCE};
+#    $self->{inputtype} 	= uc($args{type}) 	|| "file";
+    $self->{inputtype} 	= $args{type} 	|| "file";
+    $self->{source}     = $args{source};
 
     foreach (qw(PREVIOUSBUTTON RESETBUTTON STARTOVERLINK NEXTBUTTON)) {
         if (exists $args{$_}) {
@@ -155,8 +154,7 @@ sub new {
 
     $self->parse_xml();
 
-    # figure out what language we're using
-    $self->{sessiondir} = initialise_sessiondir($args{SESSIONDIR});
+    #$self->{sessiondir} = initialise_sessiondir($args{SESSIONDIR});
     $self->{calling_package} = (caller)[0]; 
 
     return $self;
@@ -173,11 +171,11 @@ not be displayed.
 
 =head2 nextbutton()
 
-As for previousbutton, but affects the "Next" button.  NOTE: NYI.
+As for previousbutton, but affects the "Next" button.
 
 =head2 finishbutton()
 
-Ditto, NYI.
+Ditto.
 
 =head2 resetbutton()
 
@@ -190,9 +188,6 @@ Ditto.
 =head2 debug()
 
 Turns debugging on/off.
-
-
-
 
 =begin testing
 
@@ -254,7 +249,7 @@ value.
 
 =begin testing
 
-like($fm->sessiondir, qr(/session-tokens/), "Session dir set on to begin with");
+is($fm->sessiondir, undef, "Session dir undefined to begin with");
 $fm->sessiondir("/tmp");
 is($fm->sessiondir, "/tmp", "Session dir changed");
 $fm->sessiondir(0);
@@ -358,45 +353,8 @@ and syntax of FormMagick forms.  FormMagick is based on a "wizard" sort
 of interface, in which one form has many pages, and each page has many
 fields.  This is expressed as a nested hierarchy of XML elements.
 
-The following is an example of how a form is described in XML. More
-complete examples can be found in the C<examples/> subdirectory in the
-CGI::FormMagick distribution.
-
-  <FORM TITLE="My form application" POST-EVENT="submit_order">
-    <PAGE NAME="Personal" TITLE="Personal details" />
-      <DESCRIPTION>
-        Please provide us with the following personal details for 
-        our records
-      </DESCRIPTION>
-      <FIELD ID="firstname" LABEL="Your first name" TYPE="TEXT" 
-        VALIDATION="nonblank"/>
-      <FIELD ID="lastname" LABEL="Your surname" TYPE="TEXT" 
-        VALIDATION="nonblank"/>
-      <FIELD ID="username" LABEL="Choose a username" TYPE="TEXT" 
-        VALIDATION="username" />
-      <FIELD ID="color" LABEL="Choose a color" TYPE="RADIO"
-        OPTIONS="'red', 'green', 'blue'"/>
-    </PAGE>
-    <PAGE NAME="Payment" TITLE="Payment details"
-    POST-EVENT="check_credit_card" />
-      <DESCRIPTION>
-        We need your full credit card details to process your 
-        order.  Please fill in all fields.  Your card will be 
-        charged within 48 hours.
-      </DESCRIPTION>
-      <FIELD ID="cardtype" LABEL="Credit card type" TYPE="SELECT" 
-        OPTIONS="list_credit_card_types" VALIDATION="credit_card_type"
-		MULTIPLE="NO"/>
-      <FIELD ID="cardnumber" LABEL="Credit card number" TYPE="TEXT" 
-        VALIDATION="credit_card_number"/>
-      <FIELD ID="cardexpiry" LABEL="Expiry date (MM/YY)" TYPE="TEXT" 
-        VALIDATION="credit_card_expiry"/>
-    </PAGE>
-    <PAGE NAME="Confirmation" TITLE="Confirmation">
-      <FIELD ID="confirm" LABEL="Click here to confirm" TYPE="CHECKBOX"
-        VALUE="confirm" CHECKED="0"/>
-    </PAGE>
-  </FORM>
+For examples of FormMagick XML, see the C<examples/> directory included
+in the FormMagick distribution.
 
 The XML must comply with the FormMagick DTD (included in the
 distribution as FormMagick.dtd).  A command-line tool to test compliance
@@ -415,7 +373,7 @@ A form may contain the following elements:
 
 =item *
 
-PAGE
+page
 
 =back
 
@@ -427,21 +385,21 @@ The following attributes are supported for forms:
 
 =item *
 
-PRE-EVENT (a subroutine to run before the form is displayed)
+pre-event (a subroutine to run before the form is displayed)
 
 =item *
 
-POST-EVENT (a subroutine to run after the form is completed)
+post-event (a subroutine to run after the form is completed)
 
 =back
 
 =head2 Example
 
-    <FORM PRE-EVENT="setup()" POST-EVENT="submit()>
-        <PAGE> ... </PAGE>
-        <PAGE> ... </PAGE>
-        <PAGE> ... </PAGE>
-    </FORM>
+    <form pre-event="setup()" post-event="submit()>
+        <page> ... </page>
+        <page> ... </page>
+        <page> ... </page>
+    </form>
 
 =head1 PAGES
 
@@ -453,11 +411,11 @@ A page may contain the following sub-elements:
 
 =item *
 
-DESCRIPTION
+description
 
 =item *
 
-FIELD
+field
 
 =back
 
@@ -470,20 +428,20 @@ The following attributes are supported for pages:
 
 =item * 
 
-NAME (required)
+name (required)
 
 =back
 
 =head2 Example
 
-    <PAGE NAME="RoomType" POST-EVENT="check_availability">
-      <DESCRIPTION>
+    <page name="RoomType" post-event="check_availability">
+      <description>
         Please provide us with details of your preferred room.
-      </DESCRIPTION>
-      <FIELD> ... </FIELD>
-      <FIELD> ... </FIELD>
-      <FIELD> ... </FIELD>
-    </PAGE>
+      </description>
+      <field> ... </field>
+      <field> ... </field>
+      <field> ... </field>
+    </page>
 
 
 =head1 FIELDS
@@ -494,46 +452,46 @@ associated with it.
 
 =head2 Field types
 
-You can specify the type of HTML field to be generated using the TYPE
+You can specify the type of HTML field to be generated using the type
 attribute:
 
-    <FIELD TYPE="...">
+    <field type="...">
 
 The following field types are supported:
 
 =over 4
 
-=item TEXT 
+=item text 
 
-A plain text field.  You may optionally use the SIZE attribute to modify
+A plain text field.  You may optionally use the size attribute to modify
 the size of the field displayed.  To restrict the length of data entered
 by the user, use the maxlength() validation routine.
 
-=item SELECT 
+=item select 
 
-A dropdown list.  You must provide the OPTIONS attribute to specify the
+A dropdown list.  You must provide the options attribute to specify the
 contents of the list (see below for the format of this attribute).  If
-you set the MULTIPLE attribute to 1, multiple selections will be
-enabled.  The optional SIZE attribute sets the number of items displayed
+you set the multiple attribute to 1, multiple selections will be
+enabled.  The optional size attribute sets the number of items displayed
 at once.
 
-=item RADIO 
+=item radio 
 
 Radio buttons allow users to choose one item from a group.  This field
-type requires the OPTIONS attribute (as for SELECT, above).
+type requires the options attribute (as for select, above).
 
-=item CHECKBOX 
+=item checkbox 
 
 This field type provides a simple check box for yes/no questions.  The
-CHECKED attribute is optional, but if set to 1 will make the checkbox
+checked attribute is optional, but if set to 1 will make the checkbox
 checked by default.
 
-=item PASSWORD
+=item password
 
-The PASSWORD field type is like a TEXT field, but obscures the data
+The password field type is like a text field, but obscures the data
 typed in by the user.
 
-=item FILE
+=item file
 
 This field type allows the upload of a file by the user.
 
@@ -547,19 +505,19 @@ The following elements may be nested within a field:
 
 =item * 
 
-LABEL (a short description; required)
+label (a short description; required)
 
 =item * 
 
-DESCRIPTION (a more verbose description; optional)
+description (a more verbose description; optional)
 
 =back
 
 
 =head2 Other field attributes
 
-Fields must ALWAYS have a TYPE (described in the previous section) and 
-an ID attribute, which is a unique name for 
+Fields must ALWAYS have a type (described in the previous section) and 
+an id attribute, which is a unique name for 
 the field.  Each type of field may have additional required attributes,
 and may support other optional attributes.
 
@@ -567,74 +525,74 @@ Here is a list of optional attributes for fields:
 
 =over 4
 
-=item VALUE 
+=item value 
 
 A default value to fill in; see below for more information on the format
 of this field.
 
-=item VALIDATION 
+=item validation 
 
 a list of validation functions; see L<CGI::FormMagick::Validator> for more
 information on this subject.
 
-=item VALIDATION-ERROR-MESSAGE
+=item validation-error-message
 
 an error message to present to the user if validation fails.
 CGI::FormMagick::Validator provides one by default, but you may prefer
 to override it.
 
-=item OPTIONS 
+=item options 
 
-A list of options required for a SELECT list or RADIO buttons; see below for 
+A list of options required for a select list or radio buttons; see below for 
 more information on the format of this attribute.
 
-=item CHECKED 
+=item checked 
 
-For CHECKBOX fields, used to make the box checked by default.  Defaults
+For checkbox fields, used to make the box checked by default.  Defaults
 to 0.
 
-=item MULTIPLE 
+=item multiple 
 
-For SELECT fields, used to allow the user to select more than one value.
+For select fields, used to allow the user to select more than one value.
 
-=item SIZE 
+=item size 
 
-For SELECT fields, height; for TEXT and TEXTAREA fields, length.
+For select fields, height; for text and textarea fields, length.
 
 =back
 
-=head2 Notes on parsing of VALUE attribute
+=head2 Notes on parsing of value attribute
 
-If your VALUE attribute ends in parens, it'll be taken as a subroutine
+If your value attribute ends in parens, it'll be taken as a subroutine
 to run.  Otherwise, it'll just be taken as a literal.
 
 This will be literal:
 
-    VALUE="username"
+    value="username"
 
 This will run a subroutine:
 
-    VALUE="get_username()"
+    value="get_username()"
 
 The subroutine will be passed the CGI object as an argument, so you can
 use the CGI params to help you generate the value you need.
 
 Your subroutine should return a string containing the value you want.
 
-=head2 Notes on parsing of OPTIONS attribute
+=head2 Notes on parsing of options attribute
 
-The OPTIONS attribute has automagical Do What I Mean (DWIM) abilities.
+The options attribute has automagical Do What I Mean (DWIM) abilities.
 You can give it a value which looks like a Perl list, a Perl hash, or a
 subroutine name.  For instance:
 
-    OPTIONS="'red', 'green', 'blue'"
+    options="'red', 'green', 'blue'"
 
-    OPTIONS="'ff0000' => 'red', '00ff00' => 'green', '0000ff' => 'blue'"
+    options="'ff0000' => 'red', '00ff00' => 'green', '0000ff' => 'blue'"
 
-    OPTIONS="get_colors()"
+    options="get_colors()"
 
 How it works is that FormMagick looks for the => operator, and if it
-finds it it evals the OPTIONS string and assigns the result to a hash.
+finds it it evals the options string and assigns the result to a hash.
 If it finds a comma (but no little => arrows) it figures it's a list,
 and evals it and assigns the results to an array.  Otherwise, it tries
 to interpret what's there as the name of a subroutine in the scope of
@@ -798,23 +756,19 @@ ones to 0.
 sub cleanup_checkboxes {
     my $fm = shift;
     my $page = $fm->page();
-    $fm->debug_msg("CC: page is $page");
-    my @fields = @{$page->{FIELDS}};
-    $fm->debug_msg("CC: fields are @fields");
+    my @fields = @{$page->{fields}};
 
     my @checkboxes;
     foreach my $f (@fields) {
-        if ($f->{TYPE} eq 'CHECKBOX') {
-            push @checkboxes, $f->{ID};
+        if ($f->{type} eq 'checkbox') {
+            push @checkboxes, $f->{id};
         }
     }
-    $fm->debug_msg("CC: checkboxes are @checkboxes");
 
     my $clean_cgi = new CGI;
     foreach my $c (@checkboxes) {
         unless ($clean_cgi->param($c)) {
             $fm->{cgi}->param(-name => $c, -value => '0');
-            $fm->debug_msg("CC: zeroing $c");
         }
     }
 
@@ -825,6 +779,7 @@ sub cleanup_checkboxes {
 =head2 $fm->commit_session()
 
 Commits a session's details to disk, in the same way as CGI::Persistent.
+Needed by cleanup_checkboxes().
 
 =cut
 
@@ -914,9 +869,9 @@ sub get_option_labels_and_values {
 
 =head2 parse_options_attribute($options_field)
 
-parses the OPTIONS attibute from a FIELD element and returns a
+parses the options attibute from a field element and returns a
 reference to either a hash or an array containing the relevant data to
-fill in a SELECT box or a RADIO group.
+fill in a select box or a radio group.
 
 =cut
 
@@ -972,6 +927,7 @@ sub zero {
 }
 
 sub add_1 {
+    shift;
     my $sum = 1;
     $sum += $_ foreach @_;
     return $sum;
@@ -1021,8 +977,7 @@ sub do_external_routine {
     my $self = shift;
     my $routine = shift || "";
     $self->debug_msg("Doing external routine $routine");
-    my @args = @_;
-    scalar @args or push @args, $self->{cgi};
+    my @args = ($self, @_);
 
     $routine =~ s/\(.*\)$//; # strip parens, if there are any
 
@@ -1051,7 +1006,7 @@ CGI::FormMagick::FAQ
 
 =head1 BUGS
 
-The VALIDATION attribute must be very carefully formatted, with spaces
+The validation attribute must be very carefully formatted, with spaces
 between the names of routines but not between the arguments to a
 routine.  See description above.
 

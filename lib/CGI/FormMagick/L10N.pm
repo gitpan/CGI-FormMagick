@@ -24,19 +24,19 @@ translations into another language.  The previous step to this is I18N
 ready to accept the translations.
 
 We've done the work of I18N for you, so all you have to do is provide
-translations for your apps.  This is done using the <LEXICON> XML
+translations for your apps.  This is done using the <lexicon> XML
 element, like so:
 
-    <FORM>
+    <form>
         ...
-    </FORM>
+    </form>
 
-    <LEXICON LANG="fr">
-        <ENTRY>
-            <BASE>Hello</BASE>
-            <TRANS>Bonjour</TRANS>
-        </ENTRY>
-    </LEXICON>
+    <lexicon lang="fr">
+        <entry>
+            <base>Hello</base>
+            <trans>Bonjour</trans>
+        </entry>
+    </lexicon>
 
 Localisation preferences are picked up from the HTTP_ACCEPT_LANGUAGE 
 environment variable passed by the user's browser.  In Netscape, you set
@@ -90,7 +90,7 @@ BEGIN: {
 }
 
 $ENV{HTTP_ACCEPT_LANGUAGE} = 'fr, en, de';
-my $fm = CGI::FormMagick->new(TYPE => 'FILE', SOURCE => "t/lexicon.xml");
+my $fm = CGI::FormMagick->new(type => 'file', source => "t/lexicon.xml");
 
 is($fm->localise("yes"), "oui", "Simple localisation");
 is($fm->localise("Hello"), "Bonjour", "Simple localisation");
@@ -146,7 +146,7 @@ sub get_lexicon {
 
     my %lexicons;
     foreach my $lex (@lexicons) {
-        $lexlang = $lex->[0]->{LANG};
+        $lexlang = $lex->[0]->{lang};
         $lexicons{$lexlang} = $lex;
     }
 
@@ -172,7 +172,7 @@ sub clean_lexicon {
     my @entries = CGI::FormMagick::clean_xml_array(@$dirty);
     my %return_lexicon;
     foreach my $e (@entries) {
-        #$return_lexicon{$e->{content}->{BASE}} = $e->{content}->{TRANS};
+        #$return_lexicon{$e->{content}->{base}} = $e->{content}->{trans};
         $base  = $e->{content}->[4]->[2];
         $trans = $e->{content}->[8]->[2];
         if ($base && $trans) {

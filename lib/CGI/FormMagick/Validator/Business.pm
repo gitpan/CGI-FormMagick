@@ -5,7 +5,7 @@
 # This software is distributed under the GNU General Public License; see
 # the file COPYING for details.
 #
-# $Id: Business.pm,v 1.7 2001/10/26 17:07:49 ryanking Exp $
+# $Id: Business.pm,v 1.8 2002/02/05 22:09:04 skud Exp $
 #
 
 package    CGI::FormMagick::Validator;
@@ -47,24 +47,24 @@ The data looks like a valid credit card number.  Checks the input for
 
 =for testing
 ok( credit_card_number()    ne "OK" , "undef is not a credit card number");
-ok( credit_card_number("")  ne "OK" , "empty string is not a credit card number");
-ok( credit_card_number("a") ne "OK" , "a is not a credit card number");
-ok( credit_card_number("12")ne "OK" , "12 is not a credit card number");
-ok( credit_card_number("4111 1111 1111 1111")
+ok( credit_card_number(undef, "")  ne "OK" , "empty string is not a credit card number");
+ok( credit_card_number(undef, "a") ne "OK" , "a is not a credit card number");
+ok( credit_card_number(undef, "12")ne "OK" , "12 is not a credit card number");
+ok( credit_card_number(undef, "4111 1111 1111 1111")
                             eq "OK" , "4111 1111 1111 1111 is a credit card numer");
-ok( credit_card_number("4111-1111-1111-1111")
+ok( credit_card_number(undef, "4111-1111-1111-1111")
                             eq "OK" , "4111-1111-1111-1111 is a credit card number");
-ok( credit_card_number("4111111111111111")
+ok( credit_card_number(undef, "4111111111111111")
                         eq "OK" , "4111111111111111 is a credit card number");
-ok( credit_card_number("4111111111111112")
+ok( credit_card_number(undef, "4111111111111112")
                             ne "OK" , "4111111111111112 is not a credit card number (Bad checksum)");
-ok( credit_card_number("411111111111111")
+ok( credit_card_number(undef, "411111111111111")
                             ne "OK" , "411111111111111 is not a credit card number (Too short)");
 
 =cut
 
 sub credit_card_number {
-    my $number = $_[0];
+    my ($fm, $number) = @_;
     my ($i, $sum, $weight);
 
     return "You must enter a credit card number" unless $number;
@@ -137,7 +137,7 @@ foreach my $case (
         { is_valid => 0, input => '' },
 ) {
     my ($expected, $input, $reason) = @{$case}{qw(is_valid input reason)};
-    my $actual = 'OK' eq credit_card_expiry($input);
+    my $actual = 'OK' eq credit_card_expiry(undef, $input);
     my $should = 'should' . ($expected ? '' : "n't");
     my $description = "credit_card_expiry('$input') $should be valid";
     $description .= " ($reason)" if defined $reason;
@@ -151,7 +151,7 @@ ok(credit_card_expiry(), "credit_card_expiry(undef) shouldn't be valid.");
 =cut
 
 sub credit_card_expiry {
-    my $data = $_[0];
+    my ($fm, $data) = @_;
 
     return "No expiry date entered." unless defined $data;
 

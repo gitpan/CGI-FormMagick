@@ -1,5 +1,22 @@
 Revision history for Perl extension FormMagick.
 
+0.60
+----
+
+WARNING: BREAKS BACKWARDS COMPATIBILITY AGAIN.  LOTS.
+
+Changed all XML elements and attributes, and parameters to new(), to
+lower case.  For instance, <FORM...> is now <form...>
+
+All external routines called by FM, including pre- and post-events and
+validation routines, now have the FormMagick object passed to them as
+their first parameter.  This will break any existing validation, 
+pre/post routines, etc.
+
+Fixed a small bug where field values of "0" would not be preserved.
+
+Documentation fixes.
+
 0.55
 ----
 

@@ -26,19 +26,26 @@ t/simple.xml
 t/lexicon.xml
 
 examples/README
-examples/e-smith
-examples/fileupload.pl
 examples/foot.tmpl
-examples/group-default.pl
-examples/group-default.xml
 examples/head.tmpl
+examples/session-tokens
+examples/hello.pl
+examples/hello.xml
 examples/hello
 examples/hello-repeat.pl
 examples/hello-repeat.xml
-examples/hello.pl
-examples/hello.xml
-examples/session-tokens
+examples/fileupload.pl
+examples/group-default.pl
+examples/group-default.xml
 examples/validations.pl
+examples/pre.pl
+examples/pre.xml
+examples/checkbox.pl
+examples/checkbox.xml
+examples/fragments.pl
+examples/fragments.xml
+examples/lexicon.pl
+examples/lexicon.xml
 
 doc/FormMagick-FAQ.html
 doc/FormMagick.dia

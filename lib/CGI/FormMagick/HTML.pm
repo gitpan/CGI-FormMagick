@@ -11,7 +11,7 @@
 #
 
 #
-# $Id: HTML.pm,v 1.41 2002/02/04 22:53:25 skud Exp $
+# $Id: HTML.pm,v 1.45 2002/02/05 22:09:04 skud Exp $
 #
 
 package    CGI::FormMagick;
@@ -34,15 +34,15 @@ BEGIN: {
         use lib "lib/";
 }
 
-$fm = new CGI::FormMagick(TYPE => 'FILE', SOURCE => "t/simple.xml");
+$fm = new CGI::FormMagick(type => 'file', source => "t/simple.xml");
 $fm->{cgi} = new CGI("");
 isa_ok($fm, 'CGI::FormMagick');
 
 our $minimalist_fieldinfo_ref = {
-    VALIDATION => 'foo',
-    LABEL => 'bar',
-    TYPE => 'TEXT',
-    ID => 'baz'
+    validation => 'foo',
+    label => 'bar',
+    type => 'text',
+    id => 'baz'
 };
 
 =end testing
@@ -113,12 +113,12 @@ prints the header template and the form title (heading level 1)
 
 sub print_form_header {
     my $fm = shift;
-    my $title = $fm->form->{TITLE};
+    my $title = $fm->form->{title};
 
     # print out the templated headers (based on what's specified in the
-    # HTML) then an h1 containing the FORM element's TITLE attribute
+    # HTML) then an h1 containing the form element's title attribute
    
-    print $fm->parse_template($fm->form->{HEADER});
+    print $fm->parse_template($fm->form->{header});
     print "<h1>", $fm->localise($title), "</h1>\n";
 }
 
@@ -143,7 +143,7 @@ sub print_form_footer {
     $fm->debug_msg(qq(<a href="$url?checkl10n=1">Check L10N</a>));
 
     # print the footer template
-    print $fm->parse_template($fm->form->{FOOTER});
+    print $fm->parse_template($fm->form->{footer});
 }
 
 
@@ -158,10 +158,10 @@ prints the page title (heading level 2) and description
 sub print_page_header {
 
     my $fm = shift;
-    my $title       = $fm->page->{TITLE};
-    my $description = $fm->page->{DESCRIPTION};
+    my $title       = $fm->page->{title};
+    my $description = $fm->page->{description};
 
-    # the level 2 heading is the PAGE element's TITLE heading
+    # the level 2 heading is the page element's title heading
     print "<h2>", $fm->localise($title), "</h2>\n";
 
     if ($description) {
@@ -239,18 +239,18 @@ sub display_fields {
 
     my @definitions;
 
-    foreach my $field ( @{$fm->page->{FIELDS}} ) {
+    foreach my $field ( @{$fm->page->{fields}} ) {
         my $info = $fm->gather_field_info($field);
-        if ($info->{type} eq "HTML") {
+        if ($info->{type} eq "html") {
             print qq(<tr><td cols="2">$info->{content}</td></tr>\n);
-        } elsif ($info->{type} eq "SUBROUTINE") {
+        } elsif ($info->{type} eq "subroutine") {
             my $output = $fm->call_subroutine_fragment($info->{src});
             print qq(<tr><td cols="2">$output</td></tr>\n);
         } else {
             $fm->print_field_description($info->{description}) 
                 if $info->{description};
         
-            if (($info->{type} eq "SELECT") || ($info->{type} eq "RADIO")) {
+            if (($info->{type} eq "select") || ($info->{type} eq "radio")) {
                 $fm->set_option_lv($info);
             }
 
@@ -268,7 +268,7 @@ sub display_fields {
 
 =head2 call_subroutine_fragment($subroutine)
 
-Calls a subroutine for use with the <SUBROUTINE> element.
+Calls a subroutine for use with the <subroutine> element.
 
 =cut
 
@@ -309,12 +309,14 @@ sub plain_sub {
 }
 
 sub add_1 {
-    return $_[0] + 1;
+    my (undef, $a) = @_;
+    return $a + 1;
 }
 
 sub add_together {
+    my (undef, @a) = @_;
     my $sum = 0;
-    $sum += $_ foreach @_;
+    $sum += $_ foreach @a;
     return $sum;
 }
 
@@ -331,7 +333,7 @@ sub add_together {
         my ($input, $expected) = @$expectations;
 
         my %f = %$minimalist_fieldinfo_ref;
-        $f{VALUE} = $input;
+        $f{value} = $input;
 
         my $i = $fm->gather_field_info(\%f);
         my $actual = $i->{value};
@@ -350,29 +352,28 @@ sub add_together {
 sub gather_field_info {
     my ($fm, $fieldinfo) = @_;
 
-    my %f;
-    foreach (qw( VALIDATION LABEL TYPE ID OPTIONS DESCRIPTION CHECKED
-    	MULTIPLE SIZE SRC CONTENT)) {
-	    $f{lc($_)} = $fieldinfo->{$_} if $fieldinfo->{$_};
-    }
+    my %f = %$fieldinfo;
 
-    # value defaults to what the user filled in, if they filled
+    # value is set to what the user filled in, if they filled
     # something in on a previous visit to this field
     if ($fm->{cgi}->param($f{id})) {
         $f{value} = $fm->{cgi}->param($f{id});
 
     # are we calling a subroutine to find the value?
-    } elsif ($fieldinfo->{VALUE} && $fieldinfo->{VALUE} =~ /\((.*)\)$/) {
-        my @args = ();
-        if (defined $1) {
-            @args = split /,\s*/, $1;
-        }
-        $f{value} = $fm->do_external_routine($fieldinfo->{VALUE}, @args); 
+    } elsif ($fieldinfo->{value} && $fieldinfo->{value} =~ /(.*)\((.*)\)$/) {
 
-    # otherwise, use VALUE attribute or default to blank.
+        my ($routine, $argstr) = ($1, $2);
+        my @args = split /,\s*/, $argstr;
+        $f{value} = $fm->do_external_routine($1, @args); 
+
+    # otherwise, use value attribute or default to blank.
     } else {
-        my $default = ($fieldinfo->{TYPE} eq 'CHECKBOX' ? 1 : "");
-        $f{value} = $fieldinfo->{VALUE} || $default; 
+        my $default = ($fieldinfo->{type} eq 'checkbox' ? 1 : "");
+        if (defined $fieldinfo->{value}) {
+            $f{value} = $fieldinfo->{value}; 
+        } else {
+            $f{value} = $default;
+        }
     }
 
     $fm->debug_msg("Field name is $f{id}");
@@ -398,7 +399,7 @@ sub build_inputfield {
     my $inputfield;		# HTML for a form input
     my $tagmaker = new CGI::FormMagick::TagMaker->new();
 
-    if ($info->{type} eq "SELECT") {
+    if ($info->{type} eq "select") {
 
         # don't specify a size if a size wasn't given in the XML
         if ($info->{size} && $info->{size} ne "") { 
@@ -424,7 +425,7 @@ sub build_inputfield {
     # nasty hack required here to select the desired value if it's preset
         $inputfield =~ s/(<OPTION VALUE="$info->{value}")/$1 SELECTED/;
 
-    } elsif ($info->{type} eq "RADIO") {
+    } elsif ($info->{type} eq "radio") {
         $inputfield = $tagmaker->input_group(
             type  => $info->{type},
             name  => $info->{id},
@@ -434,7 +435,7 @@ sub build_inputfield {
     # nasty hack required here to select the desired value if it's preset
         $inputfield =~ s/(VALUE="$info->{value}")/$1 CHECKED/;
 
-    } elsif ($info->{type} eq "CHECKBOX") {
+    } elsif ($info->{type} eq "checkbox") {
 
         # figure out whether hte box should be checked or not
         my $user_input = $fm->{cgi}->param($info->{id});
@@ -455,11 +456,11 @@ sub build_inputfield {
     } else {
         # map HTML::TagMaker's functions to the type of this field.
         my %translation_table = (
-            TEXTAREA => 'textarea',
-            CHECKBOX => 'input_field',
-            TEXT     => 'input_field',
-            PASSWORD => 'input_field',
-	    FILE     => 'input_field',
+            textarea => 'textarea',
+            checkbox => 'input_field',
+            text     => 'input_field',
+            password => 'input_field',
+	    file     => 'input_field',
         );
         my $function_name = $translation_table{$info->{type}};
         # make sure no size gets specified if the size isn't given in the XML
@@ -486,7 +487,7 @@ sub build_inputfield {
 =head2 set_option_lv($fm, $info)
 
 Given $info (a hashref with info about a field) figures out the option
-values/labels for SELECT or RADIO fields and shoves them into
+values/labels for select or radio fields and shoves them into
 $info->{option_values} and $info->{option_labels}
 
 =cut

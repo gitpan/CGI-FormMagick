@@ -5,7 +5,7 @@
 # the file COPYING for details.
 
 #
-# $Id: Setup.pm,v 1.14 2002/01/29 20:47:27 skud Exp $
+# $Id: Setup.pm,v 1.16 2002/02/05 00:41:05 adrian_chung Exp $
 #
 
 package    CGI::FormMagick;
@@ -39,7 +39,7 @@ BEGIN: {
     use CGI::FormMagick;
 }
 
-ok($fm = CGI::FormMagick->new(TYPE => 'FILE', SOURCE => "t/simple.xml"), "create fm object");
+ok($fm = CGI::FormMagick->new(type => 'file', source => "t/simple.xml"), "create fm object");
 
 =end testing
 
@@ -61,60 +61,60 @@ elements, and $fm->{lexicon} to a hash of the l10n lexicon.
 The $fm->{xml} hash has the following form:
 
     {
-        'FORM' => {
-            'POST-EVENT' => 'submit_order',
-            'TITLE' => 'FormMagick demo application'
+        'form' => {
+            'post-event' => 'submit_order',
+            'title' => 'FormMagick demo application'
         },
-        'PAGES' => [
+        'pages' => [
             {
-                 'POST-EVENT' => 'lookup_group_info',
-                 'FIELDS' => [
+                 'post-event' => 'lookup_group_info',
+                 'fields' => [
                      {
-                         'TYPE' => 'TEXT',
-                         'ID' => 'firstname',
-                         'VALIDATION' => 'nonblank',
-                         'LABEL' => 'first name'
+                         'type' => 'text',
+                         'id' => 'firstname',
+                         'validation' => 'nonblank',
+                         'label' => 'first name'
                      },
                      {
-                         'TYPE' => 'TEXT',
-                         'ID' => 'lastname',
-                         'VALIDATION' => 'nonblank',
-                         'LABEL' => 'last name'
+                         'type' => 'text',
+                         'id' => 'lastname',
+                         'validation' => 'nonblank',
+                         'label' => 'last name'
                      }
                      {
-                         'TYPE' => 'FRAGMENT',
-                         'CONTENT' => 'This is a simple fragment'
+                         'type' => 'fragment',
+                         'content' => 'This is a simple fragment'
                      }
                      {
-                         'TYPE' => 'SUBROUTINE',
-                         'SRC' => 'fragment_subroutine_name()'
+                         'type' => 'subroutine',
+                         'src' => 'fragment_subroutine_name()'
                      }
                  ],
-                 'NAME' => 'Personal',
-                 'TITLE' => 'Personal details'
+                 'name' => 'Personal',
+                 'title' => 'Personal details'
             }
         ]
     };
 
 =for testing
 is(ref($fm->{xml}), "HASH", "parse_xml gives us a hash");
-is($fm->{xml}->{TITLE}, "FormMagick demo application", 
+is($fm->{xml}->{title}, "FormMagick demo application", 
     "Picked up form title");
-is(ref($fm->{xml}->{PAGES}), "ARRAY", 
+is(ref($fm->{xml}->{pages}), "ARRAY", 
     "parse_xml gives us an array of pages");
-is(ref($fm->{xml}->{PAGES}->[0]), "HASH", 
+is(ref($fm->{xml}->{pages}->[0]), "HASH", 
     "each page is a hashref");
-is($fm->{xml}->{PAGES}->[0]->{NAME}, "Personal", 
+is($fm->{xml}->{pages}->[0]->{name}, "Personal", 
     "Picked up first page's name");
-is($fm->{xml}->{PAGES}->[0]->{TITLE}, "Personal details", 
+is($fm->{xml}->{pages}->[0]->{title}, "Personal details", 
     "Picked up first page's title");
-is(ref($fm->{xml}->{PAGES}->[0]->{FIELDS}), "ARRAY", 
+is(ref($fm->{xml}->{pages}->[0]->{fields}), "ARRAY", 
     "Page's fields are an array");
-is(ref($fm->{xml}->{PAGES}->[0]->{FIELDS}->[0]), "HASH", 
+is(ref($fm->{xml}->{pages}->[0]->{fields}->[0]), "HASH", 
     "Field is a hashref");
-is($fm->{xml}->{PAGES}->[0]->{FIELDS}->[0]->{LABEL}, "first name", 
+is($fm->{xml}->{pages}->[0]->{fields}->[0]->{label}, "first name", 
     "Picked up field title");
-is($fm->{xml}{PAGES}[0]{FIELDS}[0]{DESCRIPTION}, "description here", 
+is($fm->{xml}{pages}[0]{fields}[0]{description}, "description here", 
     "Picked up field description");
 
 =cut
@@ -126,12 +126,12 @@ sub parse_xml {
 
     my $xml;
 
-    if ($self->{inputtype} eq "FILE") {
+    if ($self->{inputtype} eq "file") {
         $xml = $p->parsefile($self->{source} || default_xml_filename());
-    } elsif ($self->{inputtype} eq "STRING") {
+    } elsif ($self->{inputtype} eq "string") {
         $xml = $p->parse($self->{source});
     } else {
-        croak 'Invalid source type specified (should be "FILE" or "STRING")';
+        croak 'Invalid source type specified (should be "file" or "string")';
     }
 
     my @dirty_form = @{$xml->[1]};
@@ -145,7 +145,7 @@ sub parse_xml {
 
     $self->{xml} = {
         %form_attributes,
-        PAGES => $pages,
+        pages => $pages,
     };
 
     $self->{lexicon} = $lexicon;
@@ -163,24 +163,24 @@ sub clean_field_list {
     my $self = shift;
     my @page_fields = @_;
     my @fields;
-    FIELD: foreach my $field (@page_fields) {
+    field: foreach my $field (@page_fields) {
         my $field_type = $field->[0];
         my %field_attributes = %{$field->[1]};
         my @this_field = @$field;
         my @field_elements = @this_field[2..$#this_field];
         @field_elements = $self->clean_xml_array(@field_elements);
 
-        FIELD_ELEMENT: foreach my $field_element (@field_elements) {
-            if ($field_type eq 'HTML') {
-                $field_attributes{TYPE} = 'HTML';
-                $field_attributes{CONTENT} = $field->[3];
-            } elsif ($field_type eq 'SUBROUTINE') {
-                $field_attributes{TYPE} = 'SUBROUTINE';
+        field_element: foreach my $field_element (@field_elements) {
+            if ($field_type eq 'html') {
+                $field_attributes{type} = 'html';
+                $field_attributes{content} = $field->[3];
+            } elsif ($field_type eq 'subroutine') {
+                $field_attributes{type} = 'subroutine';
             } elsif ($field_element->{type}) {
                 $field_attributes{$field_element->{type}} = 
                     $field_element->{content}->[2];
             } else {
-                next FIELD_ELEMENT;
+                next field_element;
             }
         }
 
@@ -205,12 +205,12 @@ sub clean_page_list {
     my %form_attributes = %{$_[2]};
     my @form_pages;
     my @lexicons;
-    FORM_ELEMENT: foreach my $form_element (@form_elements) {
+    form_element: foreach my $form_element (@form_elements) {
         if (not $form_element->{type}) {
-            next FORM_ELEMENT;
-        } elsif ($form_element->{type} eq 'PAGE') {
+            next form_element;
+        } elsif ($form_element->{type} eq 'page') {
             push @form_pages, $form_element->{content};
-        } elsif ($form_element->{type} eq 'LEXICON') {
+        } elsif ($form_element->{type} eq 'lexicon') {
             push @lexicons, $form_element->{content};
         } elsif ($form_element->{type}) {
             $form_attributes{$form_element->{type}} = 
@@ -219,7 +219,7 @@ sub clean_page_list {
     }
 
     my @pages;
-    PAGE: foreach my $page (@form_pages) {
+    page: foreach my $page (@form_pages) {
         my %page_attributes = %{$page->[0]};
         my @this_page = @$page;
         my @page_elements = @this_page[1..$#this_page];
@@ -228,18 +228,18 @@ sub clean_page_list {
         my @page_fields;
         #use Data::Dumper;
         #print Dumper @page_elements;
-        PAGE_ELEMENT: foreach my $page_element (@page_elements) {
+        page_element: foreach my $page_element (@page_elements) {
             if (not $page_element->{type}) {
-                next PAGE_ELEMENT;
-            } elsif ($page_element->{type} eq 'FIELD') {
+                next page_element;
+            } elsif ($page_element->{type} eq 'field') {
                 push @page_fields, 
-                        ["FIELD", @{$page_element->{content}}];
-            } elsif ($page_element->{type} eq 'HTML') {
+                        ["field", @{$page_element->{content}}];
+            } elsif ($page_element->{type} eq 'html') {
                 push @page_fields, 
-                        ["HTML", @{$page_element->{content}}];
-            } elsif ($page_element->{type} eq 'SUBROUTINE') {
+                        ["html", @{$page_element->{content}}];
+            } elsif ($page_element->{type} eq 'subroutine') {
                 push @page_fields, 
-                        ["SUBROUTINE", @{$page_element->{content}}];
+                        ["subroutine", @{$page_element->{content}}];
             } elsif ($page_element->{type}) {
                 $page_attributes{$page_element->{type}} = 
                     $page_element->{content}->[2];
@@ -248,7 +248,7 @@ sub clean_page_list {
 
         my @fields = $self->clean_field_list(@page_fields);
 
-        push @pages, { %page_attributes, FIELDS => \@fields };
+        push @pages, { %page_attributes, fields => \@fields };
     }
 
     my %lexicon = CGI::FormMagick::L10N->get_lexicon(@lexicons);

@@ -1,26 +1,26 @@
-<FORM TITLE="Hello" HEADER="head.tmpl" FOOTER="foot.tmpl" POST-EVENT="say_hello">
-    <PAGE NAME="Name">
-        <TITLE>I'm the FormMagickian</TITLE>
-        <FIELD ID="name" TYPE="TEXT" VALIDATION="nonblank">
-            <LABEL>Your name</LABEL>
-        </FIELD>
-    </PAGE>
-    <LEXICON LANG="fr">
-        <ENTRY>
-            <BASE>yes</BASE>
-            <TRANS>oui</TRANS>
-        </ENTRY>
-        <ENTRY>
-            <BASE>Hello</BASE>
-            <TRANS>Bonjour</TRANS>
-        </ENTRY>
-        <ENTRY>
-            <BASE>I'm the FormMagickian</BASE>
-            <TRANS>Je suis le FormMagickian</TRANS>
-        </ENTRY>
-        <ENTRY>
-            <BASE>Your name</BASE>
-            <TRANS>Votre nom</TRANS>
-        </ENTRY>
-    </LEXICON>
-</FORM>
+<form title="Hello" header="head.tmpl" footer="foot.tmpl" post-event="say_hello">
+    <page name="Name">
+        <title>I'm the FormMagickian</title>
+        <field id="name" type="text" validation="nonblank">
+            <label>Your name</label>
+        </field>
+    </page>
+    <lexicon lang="fr">
+        <entry>
+            <base>yes</base>
+            <trans>oui</trans>
+        </entry>
+        <entry>
+            <base>Hello</base>
+            <trans>Bonjour</trans>
+        </entry>
+        <entry>
+            <base>I'm the FormMagickian</base>
+            <trans>Je suis le FormMagickian</trans>
+        </entry>
+        <entry>
+            <base>Your name</base>
+            <trans>Votre nom</trans>
+        </entry>
+    </lexicon>
+</form>

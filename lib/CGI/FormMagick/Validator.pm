@@ -5,7 +5,7 @@
 # This software is distributed under the GNU General Public License; see
 # the file COPYING for details.
 #
-# $Id: Validator.pm,v 1.39 2002/01/29 22:50:42 adrian_chung Exp $
+# $Id: Validator.pm,v 1.41 2002/02/05 22:09:04 skud Exp $
 #
 
 package    CGI::FormMagick::Validator;
@@ -84,7 +84,7 @@ BEGIN: {
     use CGI;
     use vars qw($fm);
 }
-$fm = CGI::FormMagick->new(TYPE => 'FILE', SOURCE => 't/simple.xml');
+$fm = CGI::FormMagick->new(type => 'file', source => 't/simple.xml');
 
 =head2 Validation routines provided:
 
@@ -120,7 +120,7 @@ L<CGI::FormMagick::Validator::Business>
 
 You can use multiple validation routines like this:
 
-    VALUE="foo" VALIDATION="my_routine, my_other_routine"
+    value="foo" validation="my_routine, my_other_routine"
 
 However, there are some requirements on formatting to make sure that
 FormMagick can parse what you've given it.
@@ -151,17 +151,17 @@ This will be fixed to be more flexible in a later release.
 FormMagick's validation routines may be overridden and others may be added on 
 a per-application basis.  To do this, simply define a subroutine in your
 CGI script that works in a similar way to the routines provided by
-CGI::FormMagick::Validator and use its name in the VALIDATION attribute 
+CGI::FormMagick::Validator and use its name in the validation attribute 
 in your XML.
 
 The arguments passed to the validation routine are the value of the
 field (to be validated) and any subsequent arguments given in the
-VALIDATION attribute.  For example:
+validation attribute.  For example:
 
-    VALUE="foo" VALIDATION="my_routine"
+    value="foo" validation="my_routine"
     ===> my_routine(foo)
 
-    VALUE="foo" VALIDATION="my_routine(42)"
+    value="foo" validation="my_routine(42)"
     ===> my_routine(foo, 42)
 
 The latter type of validation routine is useful for routines like
@@ -185,7 +185,7 @@ Here's an example routine that you might write:
 
 =head1 SECURITY CONSIDERATIONS AND METHODS FOR MANUAL VALIDATION
 
-If you use page POST-EVENT or PRE-EVENT routines which perform code
+If you use page post-event or pre-event routines which perform code
 which is in any way based on user input, your application may be
 susceptible to a security exploit.
 
@@ -206,13 +206,13 @@ FormMagick, the added field "A" will NOT be validated.
 This is because FormMagick relies on the XML description of the page to
 know what fields to validate.  Only the current page's fields are
 validated, until the very end when all the fields are revalidated one
-last time before the FORM POST-EVENT is run.  This means that we don't
+last time before the form post-event is run.  This means that we don't
 suffer the load of validating everything every time, and it will work
 fine for most applications.
 
-However, if you need to run PAGE POST-EVENT or PRE-EVENT routines that
+However, if you need to run page post-event or pre-event routines that
 rely on previous pages' data, you should validate it manually in your
-POST-EVENT or PRE-EVENT routine.  The following methods are used
+post-event or pre-event routine.  The following methods are used
 internally by FormMagick for its validation, but may also be useful to
 developers.
 
@@ -242,9 +242,9 @@ you shouldn't need to do that)
 local $fm->{cgi};  # we're going to mess with the CGI fields
 
 my $field = {
-    VALIDATION =>  'nonblank',
-    ID          => 'testfield',
-    LABEL       => 'Test Field',
+    validation =>  'nonblank',
+    id          => 'testfield',
+    label       => 'Test Field',
 };
 
 my $goodcgi = CGI->new( { testfield => 'testing' } );
@@ -271,9 +271,9 @@ sub validate_field {
       return undef; # TODO: make this take fieldnames, not just fieldrefs.
   }
 
-  my $validation = $field->{VALIDATION};
-  my $fieldname  = $field->{ID};
-  my $fieldlabel = $field->{LABEL} || "";
+  my $validation = $field->{validation};
+  my $fieldname  = $field->{id};
+  my $fieldlabel = $field->{label} || "";
   my $fielddata  = $self->{cgi}->param($fieldname);
 
   $self->debug_msg('Validating field ' . (defined $fieldname ? $fieldname : ''));
@@ -293,7 +293,7 @@ sub validate_field {
 
   foreach my $v (@validation_routines) {
     my ($validator, $arg) = $self->parse_validation_routine($v);
-    my $result = $self->do_validation_routine ($validator, $fielddata, $arg);
+    my $result = $self->do_validation_routine($validator, $fielddata, $arg);
 
     push (@results, $result) if $result ne "OK";
 
@@ -387,12 +387,12 @@ sub validate_page {
 
     my %errors;
  
-    my $this_page = $self->form->{PAGES}->[$page_index];
+    my $this_page = $self->form->{pages}->[$page_index];
 
-    foreach my $field (@{$this_page->{FIELDS}}) {
+    foreach my $field (@{$this_page->{fields}}) {
         my $result = $self->validate_field($field);
         unless ($result eq "OK") {
-            $errors{$field->{LABEL}} = $result;
+            $errors{$field->{label}} = $result;
         }
     } 
 
@@ -549,18 +549,22 @@ main).
 
 =begin testing
 sub usertest_ok {
+    shift;
     return "OK";
 }
 
 sub usertest_data {
+    shift;
     return shift;
 }
 
 sub usertest_arg1 {
+    shift;
     return $_[1];
 }
 
 sub usertest_arg2 {
+    shift;
     return $_[2];
 }
 
@@ -583,7 +587,7 @@ sub call_user_validation {
     my %sub = (
         package => $self->{calling_package},
         sub => $validator,
-        args => [ $data ],
+        args => [ $self, $data ],
         comma_delimited_args => $args,
     );
 
@@ -616,7 +620,7 @@ sub call_fm_validation {
     my %sub = (
         package => 'CGI::FormMagick::Validator',
         sub => $validator,
-        args => [ $data ],
+        args => [ $self, $data ],
         comma_delimited_args => $args,
     );
 

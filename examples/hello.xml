@@ -1,8 +1,8 @@
-<FORM TITLE="Hello" HEADER="head.tmpl" FOOTER="foot.tmpl" POST-EVENT="say_hello">
-    <PAGE NAME="Name">
-        <TITLE>I'm the FormMagickian.</TITLE>
-        <FIELD ID="name" TYPE="TEXT" VALIDATION="nonblank">
-            <LABEL>Your name?</LABEL>
-        </FIELD>
-    </PAGE>
-</FORM>
+<form title="Hello" header="head.tmpl" footer="foot.tmpl" post-event="say_hello">
+    <page name="Name">
+        <title>I'm the FormMagickian.</title>
+        <field id="name" type="text" validation="nonblank">
+            <label>Your name?</label>
+        </field>
+    </page>
+</form>

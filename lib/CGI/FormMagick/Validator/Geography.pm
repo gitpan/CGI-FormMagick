@@ -5,7 +5,7 @@
 # This software is distributed under the GNU General Public License; see
 # the file COPYING for details.
 #
-# $Id: Geography.pm,v 1.1 2001/10/09 19:52:52 skud Exp $
+# $Id: Geography.pm,v 1.2 2002/02/05 22:09:04 skud Exp $
 #
 
 package    CGI::FormMagick::Validator;
@@ -45,9 +45,9 @@ SKIP: {
         unless eval { require Locale::Country };
 
     ok( iso_country_code()      ne "OK" , "undef is not a country");
-    ok( iso_country_code("")    ne "OK" , "empty string is not a country");
-    ok( iso_country_code("00")  ne "OK" , "00 is not a country");
-    ok( iso_country_code("au")  eq "OK" , "au is a country");
+    ok( iso_country_code(undef, "")    ne "OK" , "empty string is not a country");
+    ok( iso_country_code(undef, "00")  ne "OK" , "00 is not a country");
+    ok( iso_country_code(undef, "au")  eq "OK" , "au is a country");
 }
 
 =end testing
@@ -55,7 +55,7 @@ SKIP: {
 =cut
 
 sub iso_country_code {
-    my ($country) = @_;
+    my ($fm, $country) = @_;
 
     require Locale::Country;
     my @countries =  Locale::Country::all_country_codes();
@@ -83,11 +83,11 @@ SKIP: {
     skip "Geography::States broken, this needs figuring out", 5 
         unless eval { require Geography::States };
 
-    ok( US_state("or")          eq "OK" , "Oregon is a US state");
-    ok( US_state("OR")          eq "OK" , "Oregon is a US state");
+    ok( US_state(undef, "or")          eq "OK" , "Oregon is a US state");
+    ok( US_state(undef, "OR")          eq "OK" , "Oregon is a US state");
     ok( US_state()              ne "OK" , "undef is not a US state");
-    ok( US_state("")            ne "OK" , "empty string is not a US state");
-    ok( US_state("zz")          ne "OK" , "zz is not a US state");
+    ok( US_state(undef, "")            ne "OK" , "empty string is not a US state");
+    ok( US_state(undef, "zz")          ne "OK" , "zz is not a US state");
 
 }
 
@@ -96,7 +96,7 @@ SKIP: {
 =cut
 
 sub US_state {
-    my $data = $_[0];
+    my ($fm, $data) = @_;
     require Geography::States;
 
     my $us = Geography::States->new('USA');
@@ -115,18 +115,18 @@ The data looks like a valid US zipcode
 
 =for testing
 ok( US_zipcode()            ne "OK" , "undef is not a US zipcode");
-ok( US_zipcode("")          ne "OK" , "empty string is not a US zipcode");
-ok( US_zipcode("abc")       ne "OK" , "abc is not a US zipcode");
-ok( US_zipcode("2210")      ne "OK" , "2210 is not a US zipcode");
-ok( US_zipcode("90210")     eq "OK" , "90210 is a US zipcode");
-ok( US_zipcode("a0210")     ne "OK" , "a0210 is not a US zipcode");
-ok( US_zipcode("123456789") eq "OK" , "123456789 is a valid US zipcode");
-ok( US_zipcode("12345-6789") eq "OK" , "12345-6789 is a valid US zipcode");
+ok( US_zipcode(undef, "")          ne "OK" , "empty string is not a US zipcode");
+ok( US_zipcode(undef, "abc")       ne "OK" , "abc is not a US zipcode");
+ok( US_zipcode(undef, "2210")      ne "OK" , "2210 is not a US zipcode");
+ok( US_zipcode(undef, "90210")     eq "OK" , "90210 is a US zipcode");
+ok( US_zipcode(undef, "a0210")     ne "OK" , "a0210 is not a US zipcode");
+ok( US_zipcode(undef, "123456789") eq "OK" , "123456789 is a valid US zipcode");
+ok( US_zipcode(undef, "12345-6789") eq "OK" , "12345-6789 is a valid US zipcode");
 
 =cut
 
 sub US_zipcode {
-    my $data = $_[0];
+    my ($fm, $data) = @_;
 
     if (not $data) {
         return "You must enter a US zip code";
