@@ -1,5 +1,9 @@
 Revision history for Perl extension FormMagick.
 
+0.79
+----
+Added lexicon params, for variable interpolation in l10n'd strings.
+
 0.78
 ----
 Added "literal" field type.

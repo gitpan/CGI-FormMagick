@@ -2,6 +2,7 @@
 
 package CGI::FormMagick;
 use I18N::LangTags;
+use Text::Template 'fill_in_string';
 require Exporter;
 @ISA = qw(Exporter);
 @EXPORT = qw(localise);
@@ -36,6 +37,58 @@ element, like so:
             <trans>Bonjour</trans>
         </entry>
     </lexicon>
+
+Sometimes you need to substitute variables into the localised strings.  There
+are three ways to do this:
+
+  1. Substitute another lexicon entry by it's base name.  This substitution will     happen automagically:
+
+    <lexicon lang="fr">
+	<entry>
+	    <base>This text includes a {$var}.</base>
+	    <trans>A {$var} this text includes.</trans>
+	</entry>
+	<entry>
+	    <base>var</base>
+	    <trans>variable</trans>
+	</entry>
+    </lexicon>
+
+  2. Use a custom method in your FormMagick subclass that returns a hash of
+     variables for substitution.  This substitution will happen automagically
+     if you use the 'params' attribute of the lexicon XML element, and define
+     the named method in your FormMagick subclass:
+
+    <lexicon lang="fr" params="getLexiconParams()">
+	<entry>
+	    <base>This text includes a {$var}.</base>
+	    <trans>A {$var} this text includes.</trans>
+	</entry>
+    </lexicon>
+
+    package MyFormMagick;
+    our @ISA = ('CGI::FormMagick');
+    sub getLexiconParams
+    {
+	return (var => "variable");
+    }
+    1;
+    
+  3. Pass a hashref to the localise() method.  This substitution will happen
+     automagically if you pass the hashref as an additional parameter to the
+     localise() method: 
+
+    <lexicon lang="fr">
+	<entry>
+	    <base>This text includes a {$var}.</base>
+	    <trans>A {$var} this text includes.</trans>
+	</entry>
+    </lexicon>
+
+    ...
+    my $text = 'This text includes a {$var}.';
+    my $translated = $fm->localise($text, {var => 'variable'});
+    ...
 
 Localisation preferences are picked up from the HTTP_ACCEPT_LANGUAGE 
 environment variable passed by the user's browser.  In Netscape, you set
@@ -74,7 +127,10 @@ Templates, you will have to explicitly call the l10n routines.
 Translates a string into the end-user's preferred language by checking
 their HTTP_ACCEPT_LANG variable and looking up a lexicon hash for that
 language (if it exists).  If no translation can be found, returns the
-original string untranslated.
+original string untranslated.  
+
+Takes the text to translate as the first argument, and optionally, a hashref of
+variables for substitution as the second argument.
 
 WARNING WARNING WARNING: The internals of this routine will change 
 significantly in version 0.60, when we remove Locale::Maketext from 
@@ -88,7 +144,7 @@ BEGIN: {
     use lib "lib/";
 }
 
-$ENV{HTTP_ACCEPT_LANGUAGE} = 'fr,en,de';
+$ENV{HTTP_ACCEPT_LANGUAGE} = 'fr, en, de';
 my $fm = CGI::FormMagick->new(type => 'file', source => "t/lexicon.xml");
 $fm->parse_xml();   # suck in lexicon without display()ing
 
@@ -97,6 +153,35 @@ is($fm->localise("Hello"), "Bonjour", "Simple localisation");
 is($fm->localise("xyz"), "xyz", "Attempted localisation of untranslated string");
 is($fm->localise(""),    "",    "Fail gracefully on localisation of empty string");
 
+# Lexicon variable substitution tests
+{
+    package MyFormMagick;
+    our @ISA = ('CGI::FormMagick');
+    sub new {
+	shift;
+	my $self = CGI::FormMagick->new(@_);
+	$self->{calling_package} = (caller)[0];
+	return bless $self;
+    }
+
+    sub getLexiconParams {
+	return (params_var => "'params' method variable");
+    }
+}
+
+my $mfm = MyFormMagick->new(type=> 'file', source => "t/lexicon-params.xml");
+$mfm->parse_xml();
+is($mfm->localise('This text contains a {$var}.', {var => "variable"}),
+    "A variable this text contains.", 
+    "Lexicon variable substitution from hashref arg to localise()");
+is($mfm->localise('This text contains a {$var}.'),
+    "A lexicon variable this text contains.",
+    "Lexicon variable substitution from lexicon entry");
+is($mfm->localise('This text contains a {$params_var}.'),
+    "A 'params' method variable this text contains.",
+    "Lexicon variable substitution from 'params' subclass method"); 
+
+
 =end testing
 
 =cut
@@ -104,11 +189,15 @@ is($fm->localise(""),    "",    "Fail gracefully on localisation of empty string
 sub localise {
     my $fm = shift;
     my $string = shift || "";
+    my $hashref = shift(@_) || {};
+    my $text;
+    my %params = (%{$fm->{lexicon}}, $fm->_get_lexicon_params(), %$hashref);
     if (my $trans = $fm->{lexicon}->{$string}) {
-        return $trans;
+        $text = fill_in_string($trans, HASH=>\%params);
     } else {
-        return $string;
+        $text = fill_in_string($string, HASH=>\%params);
     }
+    return $text;
 }
 
 =pod
@@ -126,7 +215,7 @@ you follow that link.
 sub check_l10n {
     my $self = shift;
     print qq( <p>Your choice of language: $ENV{HTTP_ACCEPT_LANGUAGE}</p>);
-    my @langs = split(/,/, $ENV{HTTP_ACCEPT_LANGUAGE});
+    my @langs = split(/, /, $ENV{HTTP_ACCEPT_LANGUAGE});
     foreach my $lang (@langs) {
         print qq(<h2>Language: $lang</h2>);
     }
@@ -185,6 +274,42 @@ sub get_lexicon {
     return %thislex;
 }
 
+=head2 _set_lexicon_params(@lexicons)
+
+Given a hash ref of lexicon attributes, find the 'params' attribute
+containing a method that returns a params hash (if set), and save it as an
+object attribute. 
+
+=cut
+
+sub _set_lexicon_params
+{
+    my $self = shift;
+    my $lexicon = shift;
+
+    return unless $lexicon->{params};
+
+    push @{$self->{lexicon_params}}, $lexicon->{params};
+}
+
+=head2 _get_lexicon_params()
+
+Return the merged params hash for the preferred lexicon.
+
+=cut
+
+sub _get_lexicon_params
+{
+    my $self = shift;
+    
+    my %params;
+    foreach my $p (@{$self->{lexicon_params}})
+    {
+	%params = (%params, eval("\$self->$p") );
+    }
+    return %params;
+}
+
 =head2 clean_lexicon(@lexicons)
 
 Given an array of messy lexicons, cleans them up into a nice neat hash of
@@ -203,7 +328,8 @@ sub clean_lexicon {
     foreach my $dl (@dirty_lexicons) {
         # strip first element (the language) which is not needed
         my @stripped = @$dl;
-        shift @stripped;
+	# grab params hash from the lexicon attributes
+        $self->_set_lexicon_params(shift @stripped);
         my @entries = CGI::FormMagick->clean_xml_array(@stripped);
         foreach my $e (@entries) {
             $base  = $e->{content}->[4]->[2];
@@ -240,12 +366,7 @@ ok(grep(/^en$/, @langs), "pick up super-languages");
 
 sub get_languages {
     my $self = shift;
-    my @langs;
-    foreach my $lang (split (",", $ENV{HTTP_ACCEPT_LANGUAGE}))
-    {
-	$lang =~ /(\S+)/;
-	push @langs, $1;
-    }
+    my @langs = split ", ", $ENV{HTTP_ACCEPT_LANGUAGE};
     push @langs, map { I18N::LangTags::super_languages($_) } @langs;
     push @langs, $self->{fallback_language} if $self->{fallback_language};
     return @langs;

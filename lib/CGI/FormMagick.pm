@@ -8,7 +8,7 @@
 
 package    CGI::FormMagick;
 
-my $VERSION = $VERSION = "0.78";
+my $VERSION = $VERSION = "0.79";
 
 use XML::Parser;
 use Text::Template;
