@@ -3,12 +3,12 @@
 # the file COPYING for details.
 
 #
-# $Id: FormMagick.pm,v 1.111 2002/04/03 18:07:23 skud Exp $
+# $Id: FormMagick.pm,v 1.112 2002/04/04 17:18:42 skud Exp $
 #
 
 package    CGI::FormMagick;
 
-my $VERSION = $VERSION = "0.77";
+my $VERSION = $VERSION = "0.78";
 
 use XML::Parser;
 use Text::Template;
@@ -632,6 +632,10 @@ This field type allows the upload of a file by the user.
 
 A multi-line text field allowing the input of blocks of text.
 
+=item literal
+
+A field that is just printed literally.  Useful if you want to just print out a 
+non-editable bit of text in the same sort of layout as the other fields in the form.
 
 =back
 

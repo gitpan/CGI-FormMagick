@@ -32,7 +32,6 @@ examples/head.tmpl
 examples/session-tokens
 examples/hello.pl
 examples/hello.xml
-examples/hello
 examples/hello-repeat.pl
 examples/hello-repeat.xml
 examples/fileupload.pl

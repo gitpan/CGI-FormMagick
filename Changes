@@ -1,5 +1,9 @@
 Revision history for Perl extension FormMagick.
 
+0.78
+----
+Added "literal" field type.
+
 0.77
 ----
 Added accessor method $fm->cgi()

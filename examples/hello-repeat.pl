@@ -1,10 +1,10 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl -wT
 
 use strict;
 use lib "../lib/";
 use CGI::FormMagick;
 
-my $fm = new CGI::FormMagick();
+my $fm = new CGI::FormMagick( DEBUG => 1);
 
 $fm->display();
 

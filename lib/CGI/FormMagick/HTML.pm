@@ -11,7 +11,7 @@
 #
 
 #
-# $Id: HTML.pm,v 1.57 2002/03/26 19:00:36 skud Exp $
+# $Id: HTML.pm,v 1.58 2002/04/04 17:18:42 skud Exp $
 #
 
 package    CGI::FormMagick;
@@ -444,7 +444,8 @@ sub build_inputfield {
             value   => $info->{value},
             checked => $c,
         );
-
+    } elsif ($info->{type} eq "literal") {
+        $inputfield = $info->{value};
     } else {
         # map HTML::TagMaker's functions to the type of this field.
         my %translation_table = (
