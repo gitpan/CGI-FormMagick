@@ -11,7 +11,7 @@
 #
 
 #
-# $Id: HTML.pm,v 1.51 2002/02/19 17:58:32 skud Exp $
+# $Id: HTML.pm,v 1.56 2002/03/18 20:52:28 skud Exp $
 #
 
 package    CGI::FormMagick;
@@ -27,12 +27,10 @@ use CGI::FormMagick::L10N;
 CGI::FormMagick::HTML - HTML output routines for FormMagick
 
 =begin testing
-BEGIN: {
-        use strict;
-        use_ok('CGI::FormMagick');
-        use vars qw($fm);
-        use lib "lib/";
-}
+
+use strict;
+use_ok('CGI::FormMagick');
+use vars qw($fm);
 
 $fm = new CGI::FormMagick(type => 'file', source => "t/simple.xml");
 $fm->{cgi} = new CGI("");
@@ -220,12 +218,28 @@ sub print_field_description {
 
 prints any errors related to a field
 
+=begin testing
+
+my @errors = qw(FOO BAR BAZ);
+
+$ENV{HTTP_ACCEPT_LANGUAGE} = "fr";
+$fm->parse_xml();
+is(ref $fm->{lexicon}, "HASH", "Lexicon is loaded");
+
+$fm->print_field_error(\@errors);
+like($_STDOUT_, qr/le foo/, "Output of print_field_error should be localised");
+like($_STDOUT_, qr/le bar/, "Output of print_field_error list multiple fields");
+ok($_STDOUT_ !~ /le foo\./, "Output of print_field_error shouldn't have a dot on the end");
+
+=end testing
+
 =cut
 
 sub print_field_error {
     my ($fm, $e) = @_;
-    $e = $fm->localise($e);
-    print qq(<br><div class="error" colspan=2>$e</div>);
+    print qq(<br><div class="error" colspan=2>);
+    my $errstr = join "<br", map($fm->localise($_), @$e);
+    print qq(<br><div class="error" colspan=2>$errstr</div>);
 }
 
 =pod
@@ -246,7 +260,7 @@ sub display_fields {
         if ($info->{type} eq "html") {
             print qq(<tr><td cols="2">$info->{content}</td></tr>\n);
         } elsif ($info->{type} eq "subroutine") {
-            my $output = $fm->do_external_routine($info->{src});
+            my $output = $fm->do_external_routine($info->{src}) || "";
             print qq(<tr><td cols="2">$output</td></tr>\n);
         } else {
             $fm->print_field_description($info->{description}) 
@@ -332,7 +346,7 @@ sub gather_field_info {
         $f{value} = $fm->{cgi}->param($f{id});
 
     # are we calling a subroutine to find the value?
-    } elsif ($fieldinfo->{value} =~ /\(.*\)/) {
+    } elsif ($fieldinfo->{value} and $fieldinfo->{value} =~ /\(.*\)/) {
         $f{value} = $fm->do_external_routine($fieldinfo->{value}); 
 
     # otherwise, use value attribute or default to blank.
@@ -345,7 +359,13 @@ sub gather_field_info {
         }
     }
 
-    $fm->debug_msg("Field name is $f{id}");
+
+    if ($f{id}) {
+        $fm->debug_msg("Field name is $f{id}");
+    } else {
+        $fm->debug_msg("Not a field, it's a $f{type}");
+    }
+
     return \%f;
 } 
 

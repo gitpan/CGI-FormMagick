@@ -3,12 +3,12 @@
 # the file COPYING for details.
 
 #
-# $Id: FormMagick.pm,v 1.105 2002/02/19 20:30:16 skud Exp $
+# $Id: FormMagick.pm,v 1.108 2002/03/19 17:54:03 skud Exp $
 #
 
 package    CGI::FormMagick;
 
-my $VERSION = $VERSION = "0.70";
+my $VERSION = $VERSION = "0.75";
 
 use XML::Parser;
 use Text::Template;
@@ -529,6 +529,11 @@ typed in by the user.
 
 This field type allows the upload of a file by the user.
 
+=item textarea
+
+A multi-line text field allowing the input of blocks of text.
+
+
 =back
 
 =head2 Field sub-elements
@@ -765,6 +770,11 @@ sub prepare_for_next_page {
         if ($self->magic_wherenext()) {
             $self->{page_number} = 
                 $self->get_page_by_name($self->magic_wherenext());
+            unless (defined $self->{page_number}) {
+                carp "Can't find next page from magic 'wherenext' param "
+                    . $self->magic_wherenext() . 
+                    ".  Do you actually have a page with that name?";
+            }
         } else {
             $self->{page_number}++;
         }

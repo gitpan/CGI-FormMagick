@@ -5,7 +5,7 @@
 # This software is distributed under the GNU General Public License; see
 # the file COPYING for details.
 #
-# $Id: Validator.pm,v 1.42 2002/02/19 20:30:17 skud Exp $
+# $Id: Validator.pm,v 1.44 2002/03/18 20:52:28 skud Exp $
 #
 
 package    CGI::FormMagick::Validator;
@@ -222,8 +222,8 @@ Note: this stuff may be buggy.  Please let us know how you go with it.
 =head2 $fm->validate_field($fieldname | $fieldref)
 
 This routine allows you to validate a specific field by hand if you need
-to.  It returns a string with the error message if validation fails, or
-the string "OK" on success.
+to.  It returns an arrayref containing a list of error messages if 
+validation fails, or the string "OK" on success.
 
 Examples of use:
 
@@ -238,6 +238,16 @@ FormMagick uses references to a field object, internally:
 (that's so that FormMagick can easily loop through the fields in a page;
 you shouldn't need to do that)
 
+If you want to do something with the error messages returned:
+
+    my $errors = $fm->validate_field($field);
+    if (ref $errors) {
+        foreach my $e (@$errors) {
+            do_something();
+        }
+    } else {
+        # it's OK
+    }
 
 =begin testing
 local $fm->{cgi};  # we're going to mess with the CGI fields
@@ -255,6 +265,7 @@ is($fm->validate_field($field), "OK", "Test a single field");
 my $badcgi  = CGI->new( { testfield => '' } );
 $fm->{cgi} = $badcgi;
 isnt($fm->validate_field($field), "OK", "Test a single field");
+is(ref($fm->validate_field($field)), ARRAY, "return an arrayref");
 
 TODO: {
     local $TODO = "Make validate_field accept a fieldname instead of a fieldref";
@@ -266,48 +277,48 @@ TODO: {
 =cut
 
 sub validate_field {
-  my ($self, $field) = @_; 
+    my ($self, $field) = @_; 
+  
+    if (not ref $field) {
+        return undef; # TODO: make this take fieldnames, not just fieldrefs.
+    }
 
-  if (not ref $field) {
-      return undef; # TODO: make this take fieldnames, not just fieldrefs.
-  }
+    my $validation = $field->{validation};
+    my $fieldname  = $field->{id};
+    my $fieldlabel = $field->{label} || "";
+    my $fielddata  = $self->{cgi}->param($fieldname);
 
-  my $validation = $field->{validation};
-  my $fieldname  = $field->{id};
-  my $fieldlabel = $field->{label} || "";
-  my $fielddata  = $self->{cgi}->param($fieldname);
+    $self->debug_msg('Validating field ' . (defined $fieldname ? $fieldname : ''));
 
-  $self->debug_msg('Validating field ' . (defined $fieldname ? $fieldname : ''));
+    # just skip everything else if there's no validation to do.
+    return "OK" unless $validation;
 
-  # just skip everything else if there's no validation to do.
-  return "OK" unless $validation;
+    my @results;
+    # XXX argh! this split statement requires that we write validators like 
+    # "lengthrange(4, 10), word" like "lengthrange(4,10), word" in order to 
+    # work. Eeek. That's not how this should work. But it was even
+    # more broken before (I changed a * to a +). 
+    # OTOH, I'm not sure it's fixed now. --srl
 
-  my @results;
-  # XXX argh! this split statement requires that we write validators like 
-  # "lengthrange(4, 10), word" like "lengthrange(4,10), word" in order to 
-  # work. Eeek. That's not how this should work. But it was even
-  # more broken before (I changed a * to a +). 
-  # OTOH, I'm not sure it's fixed now. --srl
+    my @validation_routines = split( /,\s+/, $validation);
+    # $self->debug_msg("Going to perform these validation routines: @validation_routines");
 
-  my @validation_routines = split( /,\s+/, $validation);
-  # $self->debug_msg("Going to perform these validation routines: @validation_routines");
+    foreach my $v (@validation_routines) {
+        my ($validator, $arg) = $self->parse_validation_routine($v);
+        my $result = $self->do_validation_routine($validator, $fielddata, $arg);
 
-  foreach my $v (@validation_routines) {
-    my ($validator, $arg) = $self->parse_validation_routine($v);
-    my $result = $self->do_validation_routine($validator, $fielddata, $arg);
+        push (@results, $result) if $result ne "OK";
 
-    push (@results, $result) if $result ne "OK";
+        # for multiple errors, put semicolons between the errors before
+        # shoving them in a hash to return.    
 
-    # for multiple errors, put semicolons between the errors before
-    # shoving them in a hash to return.    
+    }
 
-    if (@results)   {
-      my $formatted_result = join("; ", @results) . "." ;
-      return $formatted_result if ($formatted_result ne ".");
-    } 
-
-  }
-  return "OK";
+    if (@results) {
+        return \@results;
+    } else {
+        return "OK";
+    }
 }
 
 =pod

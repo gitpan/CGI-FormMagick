@@ -1,4 +1,4 @@
-  <form title="FormMagick demo application" post-event="submit_order">
+<form title="FormMagick demo application" post-event="submit_order">
   <page name="Personal">
     <title>Personal details</title>
     <field id="firstname" type="text" validation="nonblank">
@@ -21,4 +21,20 @@
       <label>short string</label>
     </field>
   </page>
-  </form>
+
+    <lexicon lang="fr">
+        <entry>
+            <base>FOO</base>
+            <trans>le foo</trans>
+        </entry>
+        <entry>
+            <base>BAR</base>
+            <trans>le bar</trans>
+        </entry>
+        <entry>
+            <base>BAZ</base>
+            <trans>le baz</trans>
+        </entry>
+    </lexicon>
+
+</form>

@@ -1,5 +1,16 @@
 Revision history for Perl extension FormMagick.
 
+0.75
+----
+
+Support for language dialects.  L10N for something like en-US will now
+work.
+
+Some minor documentation patches.
+
+Fixed some weirdness with validate_field() so that its return values can
+be successfully L10N'd.
+
 0.70
 ----
 

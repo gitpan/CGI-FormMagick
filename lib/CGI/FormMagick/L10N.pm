@@ -1,8 +1,7 @@
 #!/usr/bin/perl -w
 
-use Locale::Maketext;
-
 package CGI::FormMagick;
+use I18N::LangTags;
 require Exporter;
 @ISA = qw(Exporter);
 @EXPORT = qw(localise);
@@ -221,19 +220,28 @@ sub clean_lexicon {
 
 Picks up the preferred language(s) from $ENV{HTTP_ACCEPT_LANGUAGE}
 
-=for testing
+=begin testing
+
 my $fm = CGI::FormMagick->new();
 $ENV{HTTP_ACCEPT_LANGUAGE} = "fr, de, en";
+$fm->fallback_language("sv");
+is($fm->fallback_language(), "sv", "Set fallback language");
 my @langs = $fm->get_languages();
 is($langs[1], "de", "pick up list of languages");
-
-$fm->fallback_langauge("sv");
 is($langs[$#langs], "sv", "pick up fallback language");
+
+$ENV{HTTP_ACCEPT_LANGUAGE} = "en-US";
+@langs = $fm->get_languages();
+ok(grep(/^en$/, @langs), "pick up super-languages");
+
+=end testing
 
 =cut
 
 sub get_languages {
+    my $self = shift;
     my @langs = split ", ", $ENV{HTTP_ACCEPT_LANGUAGE};
+    push @langs, map { I18N::LangTags::super_languages($_) } @langs;
     push @langs, $self->{fallback_language} if $self->{fallback_language};
     return @langs;
 }
