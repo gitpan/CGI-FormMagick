@@ -3,12 +3,12 @@
 # the file COPYING for details.
 
 #
-# $Id: FormMagick.pm,v 1.101 2002/02/06 21:46:45 skud Exp $
+# $Id: FormMagick.pm,v 1.105 2002/02/19 20:30:16 skud Exp $
 #
 
 package    CGI::FormMagick;
 
-my $VERSION = $VERSION = "0.60";
+my $VERSION = $VERSION = "0.70";
 
 use XML::Parser;
 use Text::Template;
@@ -126,6 +126,7 @@ BEGIN: {
 ok(CGI::FormMagick->can('new'), "We can call new");
 ok($fm = CGI::FormMagick->new(type => 'file', source => "t/simple.xml"), "create fm object"); 
 isa_ok($fm, 'CGI::FormMagick');
+$fm->parse_xml();
 
 =end testing
 
@@ -152,10 +153,9 @@ sub new {
         }
     }	
 
-    $self->parse_xml();
-
     #$self->{sessiondir} = initialise_sessiondir($args{SESSIONDIR});
     $self->{calling_package} = (caller)[0]; 
+    $self->{fallback_language} = undef;
 
     return $self;
 }
@@ -270,6 +270,38 @@ sub sessiondir {
     }
 }
 
+=head2 fallback_language($language)
+
+Given a 2-letter ISO language code, makes that language the fallback
+language for localisation.  Not necessary unless you want it to be
+something other than the base language in which your application is
+written.  Set it to a false (but defined) value to turn off the fallback 
+language feature.
+
+With no arguments, tells you what the current fallback language is.
+
+=begin testing
+
+is($fm->fallback_language(), undef, "Fallback language undefined to begin with");
+$fm->fallback_language("fr");
+is($fm->fallback_language(), "fr", "Set fallback language to French");
+$fm->fallback_language("");
+is($fm->fallback_language(), undef, "Turn fallback language off again");
+
+=end testing
+
+=cut
+
+sub fallback_language {
+    my ($self, $fl) = @_;
+    if ($fl) {
+        $self->{fallback_language} = $fl;
+    } elsif (defined $fl) {
+        $self->{fallback_language} = undef;
+    } else {
+        return $self->{fallback_language};
+    }
+}
 
 =pod
 
@@ -287,7 +319,9 @@ SKIP: {
 
 sub display {
     my $self = shift;
-    
+
+    $self->parse_xml();
+
     {
         local $^W = 0;
         # create a session-handling CGI object
@@ -935,10 +969,11 @@ sub add_1 {
 
 foreach my $expectations (
     { expected => 1,     call_this => 'one' },
-    { expected => 0,     call_this => 'zero' },
-    { expected => 1,     call_this => 'add_1', with_args => [ 0 ] },
-    { expected => 2,     call_this => 'add_1', with_args => [ 1 ] },
-    { expected => 6,     call_this => 'add_1', with_args => [ 2, 3 ] },
+    { expected => 1,     call_this => 'one()' },
+    { expected => 0,     call_this => 'zero()' },
+    { expected => 1,     call_this => 'add_1(0)' },
+    { expected => 2,     call_this => 'add_1(1)' },
+    { expected => 6,     call_this => 'add_1(2,3)' },
 
     # Error cases:
     { expected => undef, call_this => undef }, 
@@ -947,24 +982,13 @@ foreach my $expectations (
 ) {
     my $expected = $expectations->{expected};
     my $call_this = $expectations->{call_this};
-    my @args =
-        exists $expectations->{with_args}
-            ? @{$expectations->{with_args}}
-            : undef;
-
     my $actual;
     {
         local $^W = 0; # Because we feed this bad input on purpose.
-        $actual = $fm->do_external_routine($call_this, @args);
+        $actual = $fm->do_external_routine($call_this);
     }
 
-    my $arg_string;
-    if (!defined $args[0]) {
-        $arg_string = 'undef';
-    } else {
-        $arg_string = "'" . join("', '", @args) .  "'";
-    }
-    my $description = "do_external_routine($arg_string)";
+    my $description = "do_external_routine($call_this)";
 
     is($actual, $expected, $description);
 }
@@ -975,17 +999,27 @@ foreach my $expectations (
 
 sub do_external_routine {
     my $self = shift;
-    my $routine = shift || "";
-    $self->debug_msg("Doing external routine $routine");
-    my @args = ($self, @_);
+    my $input_routine = shift;
+    $self->debug_msg("Doing external routine $input_routine");
+    
+    my ($routine, $argstr);
+    my @args = ();
+    if ($input_routine =~ /(.*?)\((.*)\)$/) {
+        ($routine, $argstr) = ($1, $2);
+        @args = eval "($argstr)";
+    } elsif ($input_routine =~ /^(\w+)$/) {
+        $routine = $1;
+    } else {
+        return undef;
+    }
 
-    $routine =~ s/\(.*\)$//; # strip parens, if there are any
-
+    @args = ($self, @args);
     CGI::FormMagick::Sub::call(
         package => $self->{calling_package},
         sub => $routine,
         args => \@args
     );
+
 }
 
 =pod

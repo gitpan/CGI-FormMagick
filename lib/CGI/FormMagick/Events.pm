@@ -5,7 +5,7 @@
 # the file COPYING for details.
 
 #
-# $Id: Events.pm,v 1.10 2002/02/05 19:26:08 skud Exp $
+# $Id: Events.pm,v 1.11 2002/02/19 17:54:18 skud Exp $
 #
 
 package    CGI::FormMagick;
@@ -46,7 +46,6 @@ sub form_pre_event {
     my ($self) = @_;
 
     $self->debug_msg("This is the form pre event");
-    $self->debug_msg("This is the form pre event");
 
     # find out what the form pre_event action is. 
     my $pre_form_routine = $self->{xml}->{'pre-event'} || return;
@@ -83,6 +82,7 @@ sub form_post_event {
 
         unless ($self->do_external_routine($post_form_routine)) {
   
+            # default form post-event -- print out user data
             print "<p>", localise("The following data was submitted"), "</p>\n";
   
             print "<ul>\n";
@@ -105,7 +105,6 @@ Performs the PAGE PRE-EVENT (if any).
 XXX NEEDS TESTS
 
 =cut
-
 
 sub page_pre_event {
     my ($self) = @_;

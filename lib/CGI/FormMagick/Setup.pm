@@ -5,7 +5,7 @@
 # the file COPYING for details.
 
 #
-# $Id: Setup.pm,v 1.16 2002/02/05 00:41:05 adrian_chung Exp $
+# $Id: Setup.pm,v 1.18 2002/02/19 20:30:17 skud Exp $
 #
 
 package    CGI::FormMagick;
@@ -40,6 +40,7 @@ BEGIN: {
 }
 
 ok($fm = CGI::FormMagick->new(type => 'file', source => "t/simple.xml"), "create fm object");
+$fm->parse_xml(); # suck in structure without display()ing
 
 =end testing
 
@@ -251,12 +252,12 @@ sub clean_page_list {
         push @pages, { %page_attributes, fields => \@fields };
     }
 
-    my %lexicon = CGI::FormMagick::L10N->get_lexicon(@lexicons);
+    my %lexicon = $self->get_lexicon(@lexicons);
 
     return \@pages, \%lexicon;
 }
 
-=head2 clean_xml_array($xml)
+=head2 $self->clean_xml_array($xml)
 
 Cleans up XML by removing superfluous stuff.  Given an array of XML,
 returns a cleaner array.

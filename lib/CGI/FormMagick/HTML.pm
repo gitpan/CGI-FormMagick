@@ -11,7 +11,7 @@
 #
 
 #
-# $Id: HTML.pm,v 1.45 2002/02/05 22:09:04 skud Exp $
+# $Id: HTML.pm,v 1.51 2002/02/19 17:58:32 skud Exp $
 #
 
 package    CGI::FormMagick;
@@ -88,8 +88,10 @@ sub print_buttons {
 
     # check whether it's the last page yet
     if ($fm->is_last_page()) {
-        $label = $fm->localise("Finish");
-        print qq(<input type="submit" name="Finish" value="$label">\n);
+        if ($fm->{finishbutton}) {
+            $label = $fm->localise("Finish");
+            print qq(<input type="submit" name="Finish" value="$label">\n);
+        }
     } else {
         if ($fm->{nextbutton}) {
             $label = $fm->localise("Next");
@@ -133,7 +135,7 @@ prints the stuff that goes at the bottom of every page of the form
 sub print_form_footer {
     my $fm = shift;
   
-    my $url = $fm->{cgi}->url();
+    my $url = $fm->{cgi}->url(-relative => 1);
   
     # here's how we clear our state IDs
     print qq(<p><a href="$url">Start over again</a></p>) 
@@ -168,7 +170,7 @@ sub print_page_header {
 	  print '<p class="pagedescription">', $fm->localise($description), "</p>\n";
     }
 
-    my $url = $fm->{cgi}->url();
+    my $url = $fm->{cgi}->url(-relative => 1);
     my $enctype = $fm->get_page_enctype();
     print qq(<form method="POST" action="$url" enctype="$enctype">\n);
 
@@ -244,7 +246,7 @@ sub display_fields {
         if ($info->{type} eq "html") {
             print qq(<tr><td cols="2">$info->{content}</td></tr>\n);
         } elsif ($info->{type} eq "subroutine") {
-            my $output = $fm->call_subroutine_fragment($info->{src});
+            my $output = $fm->do_external_routine($info->{src});
             print qq(<tr><td cols="2">$output</td></tr>\n);
         } else {
             $fm->print_field_description($info->{description}) 
@@ -265,36 +267,6 @@ sub display_fields {
         }
     }
 }
-
-=head2 call_subroutine_fragment($subroutine)
-
-Calls a subroutine for use with the <subroutine> element.
-
-=cut
-
-sub call_subroutine_fragment {
-    my ($self, $routine) = @_;
-
-    $routine =~ s/\(\)$//;
-
-    $self->debug_msg("Subroutine is $routine");
-
-    my %sub = (
-        package => $self->{calling_package},
-        sub => $routine,
-    );
-
-    if (CGI::FormMagick::Sub::exists(%sub)) {
-        $self->debug_msg("Subroutine exists");
-        return CGI::FormMagick::Sub::call(%sub);
-    } else {
-        $self->debug_msg("Subroutine does not exist");
-        return undef;
-    }
-
-}
-
-
 
 =pod
 
@@ -360,11 +332,8 @@ sub gather_field_info {
         $f{value} = $fm->{cgi}->param($f{id});
 
     # are we calling a subroutine to find the value?
-    } elsif ($fieldinfo->{value} && $fieldinfo->{value} =~ /(.*)\((.*)\)$/) {
-
-        my ($routine, $argstr) = ($1, $2);
-        my @args = split /,\s*/, $argstr;
-        $f{value} = $fm->do_external_routine($1, @args); 
+    } elsif ($fieldinfo->{value} =~ /\(.*\)/) {
+        $f{value} = $fm->do_external_routine($fieldinfo->{value}); 
 
     # otherwise, use value attribute or default to blank.
     } else {
@@ -399,7 +368,10 @@ sub build_inputfield {
     my $inputfield;		# HTML for a form input
     my $tagmaker = new CGI::FormMagick::TagMaker->new();
 
+
     if ($info->{type} eq "select") {
+
+        my @labels = map { $fm->localise($_) } @{$info->{option_labels}};
 
         # don't specify a size if a size wasn't given in the XML
         if ($info->{size} && $info->{size} ne "") { 
@@ -418,19 +390,20 @@ sub build_inputfield {
         }	
 
         $inputfield = $inputfield . $tagmaker->option_group( 
-            value => $info->{option_values}, 
-            text  => $info->{option_labels},
+            value => $info->{option_values},
+            text  => \@labels,
         ) .  $tagmaker->select_end;
 
     # nasty hack required here to select the desired value if it's preset
         $inputfield =~ s/(<OPTION VALUE="$info->{value}")/$1 SELECTED/;
 
     } elsif ($info->{type} eq "radio") {
+        my @labels = map { $fm->localise($_) } @{$info->{option_labels}};
         $inputfield = $tagmaker->input_group(
             type  => $info->{type},
             name  => $info->{id},
-            value => $info->{option_values},
-            text  => $info->{option_labels} 
+            value => $info->{option_values} ,
+            text  => \@labels
         );
     # nasty hack required here to select the desired value if it's preset
         $inputfield =~ s/(VALUE="$info->{value}")/$1 CHECKED/;

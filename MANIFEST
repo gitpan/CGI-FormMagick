@@ -24,6 +24,7 @@ lib/CGI/FormMagick/Validator/Business.pm
 
 t/simple.xml
 t/lexicon.xml
+t/lexicon-merge.xml
 
 examples/README
 examples/foot.tmpl

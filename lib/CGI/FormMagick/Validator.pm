@@ -5,7 +5,7 @@
 # This software is distributed under the GNU General Public License; see
 # the file COPYING for details.
 #
-# $Id: Validator.pm,v 1.41 2002/02/05 22:09:04 skud Exp $
+# $Id: Validator.pm,v 1.42 2002/02/19 20:30:17 skud Exp $
 #
 
 package    CGI::FormMagick::Validator;
@@ -85,6 +85,7 @@ BEGIN: {
     use vars qw($fm);
 }
 $fm = CGI::FormMagick->new(type => 'file', source => 't/simple.xml');
+$fm->parse_xml(); # suck in structure without display()ing
 
 =head2 Validation routines provided:
 

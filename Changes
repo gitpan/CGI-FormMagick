@@ -1,5 +1,26 @@
 Revision history for Perl extension FormMagick.
 
+0.70
+----
+
+URLs generated for form submission, start over link, etc, are now
+relative.
+
+The following things, which have always run a subroutine if the input
+contained parens, eg foo(), now also accept arguments to those
+subroutines, eg foo("bar", "baz"):
+
+    Form pre/post events
+    Page pre/post events
+    Field values
+    Subroutine elements
+
+Multiple lexicons for the same language are now merged, with the later
+entries overwriting the former.
+
+You can now set a fallback language for localisation, using the
+fallback_language() method.
+
 0.60
 ----
 

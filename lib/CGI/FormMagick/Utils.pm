@@ -5,7 +5,7 @@
 # the file COPYING for details.
 
 #
-# $Id: Utils.pm,v 1.26 2002/02/05 00:41:05 adrian_chung Exp $
+# $Id: Utils.pm,v 1.27 2002/02/19 20:30:17 skud Exp $
 #
 
 package    CGI::FormMagick;
@@ -41,6 +41,7 @@ BEGIN: {
 }
 
 ok($fm = CGI::FormMagick->new(type => 'file', source => "t/simple.xml"), "create fm object");
+$fm->parse_xml(); # suck in structure without display()ing
 
 =end testing
 

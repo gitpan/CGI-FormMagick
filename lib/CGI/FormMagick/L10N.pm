@@ -2,7 +2,7 @@
 
 use Locale::Maketext;
 
-package CGI::FormMagick::L10N;
+package CGI::FormMagick;
 require Exporter;
 @ISA = qw(Exporter);
 @EXPORT = qw(localise);
@@ -91,6 +91,7 @@ BEGIN: {
 
 $ENV{HTTP_ACCEPT_LANGUAGE} = 'fr, en, de';
 my $fm = CGI::FormMagick->new(type => 'file', source => "t/lexicon.xml");
+$fm->parse_xml();   # suck in lexicon without display()ing
 
 is($fm->localise("yes"), "oui", "Simple localisation");
 is($fm->localise("Hello"), "Bonjour", "Simple localisation");
@@ -137,46 +138,80 @@ sub check_l10n {
 Attempts to find a suitable localisation lexicon for use, and returns it
 as a hash.
 
+=begin testing
+
+my $lextest = CGI::FormMagick->new(
+    type => "file", 
+    source => "t/lexicon-merge.xml"
+);
+
+$lextest->parse_xml(); # suck in lexicon without display()ing
+
+$ENV{HTTP_ACCEPT_LANGUAGE} = 'fr';
+is($ENV{HTTP_ACCEPT_LANGUAGE}, 'fr', "Set HTTP_ACCEPT_LANGUAGE to 'fr'");
+is($lextest->localise("Hello"), "Bonjour", "Retained info from first lexicon");
+is($lextest->localise("yes"), "certainement", "Picked up info from second (merged) lexicon");
+
+=end testing
+
 =cut
 
 sub get_lexicon {
-    shift;
+    my $self = shift;
     my (@lexicons) = @_;
+
     my @preferred_languages = get_languages();
 
     my %lexicons;
     foreach my $lex (@lexicons) {
         $lexlang = $lex->[0]->{lang};
-        $lexicons{$lexlang} = $lex;
+
+        # merge multiple lexicons of the same language
+        if ($lexicons{$lexlang}) {
+            $lexicons{$lexlang} = [ @{$lexicons{$lexlang}}, $lex ];
+        } else {
+            $lexicons{$lexlang} = [ $lex ];
+        }
     }
+
+
 
     my %thislex = ();
     PL: foreach my $pl (@preferred_languages) {
         if ($lexicons{$pl}) {
-            %thislex = clean_lexicon($lexicons{$pl});
+            %thislex = $self->clean_lexicon(@{$lexicons{$pl}});
             last PL;
         }
     }
     return %thislex;
 }
 
-=head2 clean_lexicon($lexhashref)
+=head2 clean_lexicon(@lexicons)
 
-Given a messy lexicon hashref, clean it up into a nice neat hash of
+Given an array of messy lexicons, cleans them up into a nice neat hash of
 base/translation pairs.
+
+It's an array because you might have more than one lexicon for the same
+langauge.  These get merged into one lexicon hash, so that the first
+lexicon of a given language will be overridden by the second.
 
 =cut
 
 sub clean_lexicon {
-    my $dirty = shift;
-    my @entries = CGI::FormMagick::clean_xml_array(@$dirty);
+    my $self = shift;
+    my @dirty_lexicons = @_;
     my %return_lexicon;
-    foreach my $e (@entries) {
-        #$return_lexicon{$e->{content}->{base}} = $e->{content}->{trans};
-        $base  = $e->{content}->[4]->[2];
-        $trans = $e->{content}->[8]->[2];
-        if ($base && $trans) {
-            $return_lexicon{$base} = $trans;
+    foreach my $dl (@dirty_lexicons) {
+        # strip first element (the language) which is not needed
+        my @stripped = @$dl;
+        shift @stripped;
+        my @entries = CGI::FormMagick->clean_xml_array(@stripped);
+        foreach my $e (@entries) {
+            $base  = $e->{content}->[4]->[2];
+            $trans = $e->{content}->[8]->[2];
+            if ($base && $trans) {
+                $return_lexicon{$base} = $trans;
+            }
         }
     }
     return %return_lexicon;
@@ -187,14 +222,20 @@ sub clean_lexicon {
 Picks up the preferred language(s) from $ENV{HTTP_ACCEPT_LANGUAGE}
 
 =for testing
+my $fm = CGI::FormMagick->new();
 $ENV{HTTP_ACCEPT_LANGUAGE} = "fr, de, en";
-my @langs = CGI::FormMagick::L10N::get_languages();
+my @langs = $fm->get_languages();
 is($langs[1], "de", "pick up list of languages");
+
+$fm->fallback_langauge("sv");
+is($langs[$#langs], "sv", "pick up fallback language");
 
 =cut
 
 sub get_languages {
-    return split ", ", $ENV{HTTP_ACCEPT_LANGUAGE};
+    my @langs = split ", ", $ENV{HTTP_ACCEPT_LANGUAGE};
+    push @langs, $self->{fallback_language} if $self->{fallback_language};
+    return @langs;
 }
 
 
