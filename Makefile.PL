@@ -25,7 +25,7 @@ WriteMakefile(
 			},
     ($] >= 5.005 ?    ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM => 'lib/CGI/FormMagick.pm', # retrieve abstract from module
-       AUTHOR     => 'Kirrily "Skud" Robert <skud@cpan.org>') : ()),
+       AUTHOR     => 'Mitel Networks Corp. <mitel@cpan.org>') : ()),
 
 );
 

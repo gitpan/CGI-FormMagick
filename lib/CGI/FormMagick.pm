@@ -5,12 +5,12 @@
 # This software is distributed under the same licenses as Perl itself;
 # see the file COPYING for details.
 #
-# $Id: FormMagick.pm,v 1.128 2003/02/05 17:18:32 anoncvs_gtkglext Exp $
+# $Id: FormMagick.pm,v 1.129 2003/02/05 20:16:36 segfault- Exp $
 #
 
 package    CGI::FormMagick;
 
-my $VERSION = $VERSION = "0.87";
+my $VERSION = $VERSION = "0.89";
 
 use XML::Parser;
 use Text::Template;
