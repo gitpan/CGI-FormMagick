@@ -1,5 +1,25 @@
 Revision history for Perl extension FormMagick.
 
+0.86
+----
+Nothing user-visible.
+There is now a get_validation_attribute routine in Validator.pm to help
+me with a subclass we're using at e-smith.
+
+0.85
+----
+Fixed bug with charsets when displaying values in text fields.  It's a
+long story.  Ugh.
+
+0.84
+----
+Fixed insidious, nasty little display bug that caused certain form
+elements to show weird character sets.  Bleh.
+
+0.83
+----
+Various minor bugfixes.  See CVS.  I'm in a hurry.
+
 0.82
 ----
 Fixed up various warnings that were thrown to the httpd error log.

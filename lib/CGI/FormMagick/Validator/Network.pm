@@ -5,7 +5,7 @@
 # This software is distributed under the GNU General Public License; see
 # the file COPYING for details.
 #
-# $Id: Network.pm,v 1.8 2002/02/05 22:09:04 skud Exp $
+# $Id: Network.pm,v 1.9 2002/06/24 17:55:14 skud Exp $
 #
 
 package    CGI::FormMagick::Validator;
@@ -131,6 +131,7 @@ isnt(ip_number(undef, '1000.2.3.4'), 'OK', "ip_number('1000.2.3.4') shouldn't be
 isnt(ip_number(undef, '256.2.3.4'), 'OK', "ip_number('256.2.3.4') shouldn't be valid.");
 isnt(ip_number(undef, 'a.2.3.4'), 'OK', "ip_number('a.2.3.4') shouldn't be valid.");
 isnt(ip_number(undef, '1,2,3,4'), 'OK', "ip_number('1,2,3,4') shouldn't be valid.");
+isnt(ip_number(undef, '1.2.3'), 'OK', "ip_number('1.2.3') shouldn't be valid.");
 isnt(ip_number(undef, ''), 'OK', "ip_number('') shouldn't be valid.");
 isnt(ip_number(), 'OK', "ip_number(undef) shouldn't be valid.");
 

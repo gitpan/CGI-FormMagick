@@ -193,7 +193,8 @@ sub localise {
     $string  = "" unless defined $string;
     $hashref = {} unless keys %$hashref;
     my $text;
-    my %params = (%{$fm->{lexicon}}, $fm->_get_lexicon_params(), %$hashref);
+    my %params = $fm->{lexicon} ? %{$fm->{lexicon}} : ();
+    %params = (%params, $fm->_get_lexicon_params(), %$hashref);
     if (my $trans = $fm->{lexicon}->{$string}) {
         $text = fill_in_string($trans, HASH=>\%params);
     } else {

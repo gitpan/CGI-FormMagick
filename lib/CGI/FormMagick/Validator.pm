@@ -5,7 +5,7 @@
 # This software is distributed under the GNU General Public License; see
 # the file COPYING for details.
 #
-# $Id: Validator.pm,v 1.44 2002/03/18 20:52:28 skud Exp $
+# $Id: Validator.pm,v 1.46 2002/06/24 18:22:06 skud Exp $
 #
 
 package    CGI::FormMagick::Validator;
@@ -19,6 +19,7 @@ our @EXPORT  = qw(
     call_user_validation
     call_fm_validation
 
+    get_validation_attribute
     validate_field 
     validate_page 
     validate_all 
@@ -283,7 +284,7 @@ sub validate_field {
         return undef; # TODO: make this take fieldnames, not just fieldrefs.
     }
 
-    my $validation = $field->{validation};
+    my $validation = $self->get_validation_attribute($field);
     my $fieldname  = $field->{id};
     my $fieldlabel = $field->{label} || "";
     my $fielddata  = $self->{cgi}->param($fieldname);
@@ -319,6 +320,36 @@ sub validate_field {
     } else {
         return "OK";
     }
+}
+
+=head2 get_validation_attribute($field)
+
+A tiny little routine which, given a field hashref (as seen in
+validate_field() will give you the value of the validation attribute
+from that field.
+
+This was split out to make it easy to have a subclass add validation
+routines by overriding this function.
+
+=begin testing
+
+can_ok($fm, "get_validation_attribute");
+
+my $field = {
+    validation =>  'nonblank',
+    id          => 'testfield',
+    label       => 'Test Field',
+};
+
+is($fm->get_validation_attribute($field), "nonblank", "get_validation_attribute");
+
+=end testing
+
+=cut
+
+sub get_validation_attribute {
+    my ($fm, $field) = @_;
+    return $field->{validation};
 }
 
 =pod

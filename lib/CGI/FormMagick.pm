@@ -3,12 +3,12 @@
 # the file COPYING for details.
 
 #
-# $Id: FormMagick.pm,v 1.119 2002/05/07 17:34:41 skud Exp $
+# $Id: FormMagick.pm,v 1.125 2002/06/24 18:12:20 skud Exp $
 #
 
 package    CGI::FormMagick;
 
-my $VERSION = $VERSION = "0.82";
+my $VERSION = $VERSION = "0.86";
 
 use XML::Parser;
 use Text::Template;
@@ -149,11 +149,12 @@ $fm->parse_xml();
 =cut
 
 sub new {
-    shift;
-    my $self 		= {};
+    my $self 		= shift;
+    my $class = ref($self) || $self;
+    $self = bless {}, $class;
+
     my %args 		= @_;
 
-    bless $self;
 
     $self->{debug} 	= $args{DEBUG} 		|| 0;
 #    $self->{inputtype} 	= uc($args{type}) 	|| "file";

@@ -5,7 +5,7 @@
 # the file COPYING for details.
 
 #
-# $Id: Utils.pm,v 1.28 2002/05/07 17:34:41 skud Exp $
+# $Id: Utils.pm,v 1.30 2002/05/13 18:13:02 skud Exp $
 #
 
 package    CGI::FormMagick;
@@ -160,16 +160,25 @@ sub push_page_stack {
 
 =head2 $fm->parse_template($filename)
 
-parses a Text::Template file and returns the result
+parses a Text::Template file and returns the result.  Will return undef
+if the filename is invalid.
 
 =for testing
-ok(defined($fm->parse_template), "Fail gracefully if no template");
+is($fm->parse_template(), undef, "Fail gracefully if no template");
 
 =cut
 
 sub parse_template {
     my $self = shift;
-    my $filename = shift || "";
+    my $filename = shift;
+    return undef unless $filename;
+
+    if ($filename =~ /([^;]*)/) {
+        $filename = $1;
+    } else {
+        carp "Filename $filename is tainted, can't parse template";
+        return undef;
+    }
     my $output = "";
     if (-e $filename) {
         my $template = new Text::Template (

@@ -11,13 +11,14 @@
 #
 
 #
-# $Id: HTML.pm,v 1.61 2002/05/07 17:34:41 skud Exp $
+# $Id: HTML.pm,v 1.64 2002/06/24 17:56:35 skud Exp $
 #
 
 package    CGI::FormMagick;
 
 use strict;
 use Carp;
+use Text::Iconv;
 use CGI::FormMagick::L10N;
 
 =pod 
@@ -354,7 +355,8 @@ sub gather_field_info {
     } else {
         my $default = ($fieldinfo->{type} eq 'checkbox' ? 1 : "");
         if (defined $fieldinfo->{value}) {
-            $f{value} = $fieldinfo->{value}; 
+            my  $converter = Text::Iconv->new("UTF-8", $fm->{charset} || "ISO-8859-1");
+            $f{value} = $converter->convert($fieldinfo->{value});
         } else {
             $f{value} = $default;
         }
@@ -389,6 +391,16 @@ sub build_inputfield {
     my $inputfield;		# HTML for a form input
     my $tagmaker = new CGI::FormMagick::TagMaker->new();
 
+    my  $converter = Text::Iconv->new($fm->{charset} || "ISO-8859-1", "UTF-8");
+    my $id = $converter->convert($info->{id});
+    my $type = $converter->convert($info->{type});
+    my $multiple = $converter->convert($info->{multiple});
+    my $size = $converter->convert($info->{size});
+
+    # value is already converted in gather_field_info IFF it came from the 
+    # XML default (not user input or a subroutine, both of which 
+    # should just have plain ol' Latin-1
+    my $value = $info->{value};
 
     if ($info->{type} eq "select") {
 
@@ -397,16 +409,16 @@ sub build_inputfield {
         # don't specify a size if a size wasn't given in the XML
         if ($info->{size} && $info->{size} ne "") { 
             $inputfield = $tagmaker->select_start( 
-                type     => $info->{type}, 
-                name     => $info->{id},
-                multiple => $info->{multiple},
-                size     => $info->{size} 
+                type     => $type,
+                name     => $id,
+                multiple => $multiple,
+                size     => $size,
             )
         } else {
             $inputfield = $tagmaker->select_start( 
-                type     => $info->{type}, 
-                name     => $info->{id},
-                multiple => $info->{multiple},
+                type     => $type,
+                name     => $id,
+                multiple => $multiple,
             )
         }	
 
@@ -416,13 +428,13 @@ sub build_inputfield {
         ) .  $tagmaker->select_end;
 
     # nasty hack required here to select the desired value if it's preset
-        $inputfield =~ s/(<OPTION VALUE="$info->{value}")/$1 SELECTED/;
+        $inputfield =~ s/(<OPTION VALUE="$value")/$1 SELECTED/;
 
     } elsif ($info->{type} eq "radio") {
         my @labels = map { $fm->localise($_) } @{$info->{option_labels}};
         $inputfield = $tagmaker->input_group(
-            type  => $info->{type},
-            name  => $info->{id},
+            type  => $type,
+            name  => $id,
             value => $info->{option_values} ,
             text  => \@labels
         );
@@ -432,7 +444,7 @@ sub build_inputfield {
     } elsif ($info->{type} eq "checkbox") {
 
         # figure out whether hte box should be checked or not
-        my $user_input = $fm->{cgi}->param($info->{id});
+        my $user_input = $fm->{cgi}->param($id);
         my $c;
         if (defined $user_input) {
             $c = $user_input ? 1 : 0;
@@ -441,13 +453,13 @@ sub build_inputfield {
         }
 
         $inputfield = $tagmaker->input(
-            type    => $info->{type},
-            name    => $info->{id},
-            value   => $info->{value},
+            type    => $type,
+            name    => $id,
+            value   => $value,
             checked => $c,
         );
     } elsif ($info->{type} eq "literal") {
-        $inputfield = $info->{value};
+        $inputfield = $value;
     } else {
         # map HTML::TagMaker's functions to the type of this field.
         my %translation_table = (
@@ -461,16 +473,16 @@ sub build_inputfield {
         # make sure no size gets specified if the size isn't given in the XML
         if ($info->{size} && $info->{size} ne "") {
             $inputfield = $tagmaker->$function_name(
-                type  => $info->{type},
-                name  => $info->{id},
-                value => $info->{value},
-                size  => $info->{size},
+                type  => $type,
+                name  => $id,
+                value => $value,
+                size  => $size,
             );
         } else {
             $inputfield = $tagmaker->$function_name(
-                type  => $info->{type},
-                name  => $info->{id},
-                value => $info->{value},
+                type  => $type,
+                name  => $id,
+                value => $value,
             );
         }
     }

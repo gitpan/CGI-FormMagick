@@ -9,14 +9,17 @@ WriteMakefile(
     'PREREQ_PM'		=> { # e.g., Module::Name => 1.1
 				Persistence::Object::Simple => 0.47,
 				XML::Parser => 2.30,
-				Text::Template => 1.23,
+				Text::Template => 1.40,
 				Class::ParamParser => 1.0401,
 				CGI::Persistent => 0.21,
-                                Text::Iconv => 1.2
+                                Text::Iconv => 1.2,
+                                Test::Inline    => 0.15,
+                                Test::More      => 0.42,
+                                I18N::LangTags  => 0.13,
+                                Time::ParseDate => 100.01,
 
 	# required for validation routines only.  I'm commenting them
 	# out for now.
-				# Time::ParseDate => '00.01_03_01',
 				# Geography::States => 1.3,
 				# Locale::Country => 1.02,
 			},
