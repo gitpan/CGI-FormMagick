@@ -1,4 +1,19 @@
 Revision history for Perl extension FormMagick.
+0.88
+----
+* License clarification on all files. FormMagick is licensed under the
+  same terms as perl itself.
+* Trim blank space around lexicon entries
+* Textarea fields can now have "rows" and "cols" arguments instead of size
+  and generate proper HTML
+* UI changes to make using CSS easier
+* Improved email address parsing using Mail::RFC822::Address module
+* Security fix: force use of session dir for tokens, don't pass full path
+
+0.87
+----
+An HTML error (missing > symbol) was making the script print only the
+first error message if a field was failing more than one validation.
 
 0.86
 ----

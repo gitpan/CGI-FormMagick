@@ -1,14 +1,16 @@
-#!/usr/bin/perl -w # # FormMagick (c) 2000-2001 Kirrily Robert <skud@cpan.org>
-# This software is distributed under the same licenses as Perl; see
-# the file COPYING for details.
-
+#!/usr/bin/perl -w 
+# 
+# FormMagick (c) 2000-2001 Kirrily Robert <skud@cpan.org>
+# Copyright (c) 2000-2002 Mitel Networks Corporation
+# This software is distributed under the same licenses as Perl itself;
+# see the file COPYING for details.
 #
-# $Id: FormMagick.pm,v 1.125 2002/06/24 18:12:20 skud Exp $
+# $Id: FormMagick.pm,v 1.128 2003/02/05 17:18:32 anoncvs_gtkglext Exp $
 #
 
 package    CGI::FormMagick;
 
-my $VERSION = $VERSION = "0.86";
+my $VERSION = $VERSION = "0.87";
 
 use XML::Parser;
 use Text::Template;
@@ -174,7 +176,7 @@ sub new {
     #$self->{sessiondir} = initialise_sessiondir($args{SESSIONDIR});
     $self->{calling_package} = (caller)[0]; 
     $self->{fallback_language} = undef;
-
+    
     return $self;
 }
 
@@ -347,7 +349,6 @@ sub display {
     }
 
     print $self->{cgi}->header;
-
     # debug thingy, to check L10N lexicons, only if you need it
     $self->check_l10n() if $self->{cgi}->param('checkl10n');
 
@@ -390,7 +391,6 @@ sub display {
         $self->page_pre_event(); 
         $self->print_page();
     }
-
     $self->print_form_footer();
     $self->clear_navigation_params(); 
     
@@ -642,7 +642,9 @@ This field type allows the upload of a file by the user.
 
 =item textarea
 
-A multi-line text field allowing the input of blocks of text.
+A multi-line text field allowing the input of blocks of text. Defaults
+to 5 rows and 60 columns, but you can specify "rows" and "cols" arguments
+to change that.
 
 =item literal
 
@@ -948,7 +950,7 @@ sub commit_session {
     my $fm = shift;
     my $cgi = $fm->{cgi};
 
-    my $fn = $cgi->param('.id');
+    my $fn = join "/", ($fm->{sessiondir},$cgi->param('.id'));
     my $po = new Persistence::Object::Simple __Fn => $fn;
 
     my @names = $cgi->param ();

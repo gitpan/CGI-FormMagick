@@ -13,12 +13,10 @@ use Data::Dumper;
 my $fm = new CGI::FormMagick();
 
 $fm->display();
+$fm->finishbutton(0);
 
-sub say_hello {
-    my $cgi  = shift;
-    my $name = $cgi->param('name');
-    my $greeting = $fm->localise("Hello") . ", $name";
-    print qq(<h2>$greeting</h2>);
-    return 1;
+sub wibble {
+    my ($fm, $data) = @_;
+    return "OK" if $data eq "wibble";
+    return "NOT_WIBBLE";
 }
-

@@ -1,15 +1,17 @@
 #!/usr/bin/perl -w
 
 #
-# FormMagick (c) 2000 Kirrily Robert <skud@infotrope.net>
-# This software is distributed under the GNU General Public License; see
-# the file COPYING for details.
+# FormMagick (c) 2000-2001 Kirrily Robert <skud@cpan.org>
+# Copyright (c) 2000-2002 Mitel Networks Corporation
+# This software is distributed under the same licenses as Perl itself;
+# see the file COPYING for details.
 #
-# $Id: Network.pm,v 1.9 2002/06/24 17:55:14 skud Exp $
+# $Id: Network.pm,v 1.12 2003/02/05 17:18:41 anoncvs_gtkglext Exp $
 #
 
 package    CGI::FormMagick::Validator;
 use strict;
+use Mail::RFC822::Address;
 
 =pod
 
@@ -86,10 +88,10 @@ sub email_simple {
     my ($fm, $data) = @_;
     if (not defined $data ) {
         return "You must enter an email address.";
-    } elsif ($data =~ /.+\@.+\..+/) {
+	} elsif (Mail::RFC822::Address::valid($data)) {
         return "OK";
     } else {
-        return "This field doesn't look like an email address - it should contain an at-sign (\@)";
+        return "This field doesn't look like an RFC822-compliant email address";
     }
 }
 

@@ -1,11 +1,13 @@
 #!/usr/bin/perl -w
 
 #
-# FormMagick (c) 2000 Kirrily Robert <skud@infotrope.net>
-# This software is distributed under the GNU General Public License; see
-# the file COPYING for details.
 #
-# $Id: Business.pm,v 1.8 2002/02/05 22:09:04 skud Exp $
+# FormMagick (c) 2000-2001 Kirrily Robert <skud@cpan.org>
+# Copyright (c) 2000-2002 Mitel Networks Corporation
+# This software is distributed under the same licenses as Perl itself;
+# see the file COPYING for details.
+#
+# $Id: Business.pm,v 1.10 2003/02/05 17:18:39 anoncvs_gtkglext Exp $
 #
 
 package    CGI::FormMagick::Validator;

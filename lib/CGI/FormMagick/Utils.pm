@@ -1,11 +1,13 @@
 #!/usr/bin/perl -w 
 #
+#
 # FormMagick (c) 2000-2001 Kirrily Robert <skud@cpan.org>
-# This software is distributed under the same licenses as Perl; see
-# the file COPYING for details.
+# Copyright (c) 2000-2002 Mitel Networks Corporation
+# This software is distributed under the same licenses as Perl itself;
+# see the file COPYING for details.
 
 #
-# $Id: Utils.pm,v 1.30 2002/05/13 18:13:02 skud Exp $
+# $Id: Utils.pm,v 1.32 2003/02/05 17:18:37 anoncvs_gtkglext Exp $
 #
 
 package    CGI::FormMagick;

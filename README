@@ -1,8 +1,8 @@
 FormMagick 0.3.1
-Copyright (c) 2000-2001 Kirrily "Skud" Robert <skud@infotrope.net>
-
-This software is distributed under the GNU General Public License (GPL),
-a copy of which can be found in the file COPYING in this directory.
+Copyright (c) 2000-2001 Kirrily Robert <skud@cpan.org>
+Copyright (c) 2000-2002 Mitel Networks Corporation
+This software is distributed under the same licenses as Perl itself;
+see the file COPYING for details.
 
 For installation instructions, read the file INSTALL.
 

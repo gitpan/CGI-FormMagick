@@ -13,6 +13,7 @@ use Data::Dumper;
 my $fm = new CGI::FormMagick();
 
 $fm->display();
+$fm->finishbutton(0);
 
 sub say_hello {
     my $cgi  = shift;

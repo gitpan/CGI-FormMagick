@@ -1,4 +1,10 @@
 #!/usr/bin/perl -w
+#
+# FormMagick (c) 2000-2001 Kirrily Robert <skud@cpan.org>
+# Copyright (c) 2000-2002 Mitel Networks Corporation
+# This software is distributed under the same licenses as Perl itself;
+# see the file COPYING for details.
+
 
 package CGI::FormMagick;
 use I18N::LangTags;
@@ -346,6 +352,8 @@ sub clean_lexicon {
             $base  = $e->{content}->[4]->[2];
             $trans = $e->{content}->[8]->[2];
             if ($base && $trans) {
+		$trans =~ s/^\s*//; # Remove leading whitespace
+		$trans =~ s/\s*$//; # Remove trailing space
                 $return_lexicon{$base} = ($iconv 
                                          ? $iconv->convert($trans)
                                          : $trans);

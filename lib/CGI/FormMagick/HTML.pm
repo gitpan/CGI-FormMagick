@@ -1,9 +1,10 @@
 #!/usr/bin/perl -w 
 #
-# FormMagick (c) 2000 Kirrily Robert <skud@infotrope.net>
-# This software is distributed under the GNU General Public License; see
-# the file COPYING for details.
-
+#
+# FormMagick (c) 2000-2001 Kirrily Robert <skud@cpan.org>
+# Copyright (c) 2000-2002 Mitel Networks Corporation
+# This software is distributed under the same licenses as Perl itself;
+# see the file COPYING for details.
 #
 # NOTE TO DEVELOPERS: Use "XXX" to mark bugs or areas that need work
 # use something like this to find how many things need work:
@@ -11,7 +12,7 @@
 #
 
 #
-# $Id: HTML.pm,v 1.64 2002/06/24 17:56:35 skud Exp $
+# $Id: HTML.pm,v 1.66 2003/02/05 17:18:35 anoncvs_gtkglext Exp $
 #
 
 package    CGI::FormMagick;
@@ -51,7 +52,6 @@ our $minimalist_fieldinfo_ref = {
 
 These are internal-use-only routines for displaying HTML output,
 probably only of interest to developers of FormMagick.
-
 =head1 DEVELOPER ROUTINES 
 
 =head2 $self->print_page()
@@ -79,21 +79,30 @@ print the table row containing the form's buttons
 
 sub print_buttons {
     my $fm = shift;
+    my $html_printed="0";
     print "\n";
-    print qq(<tr><td></td><td><div class="buttons">);
+#    print qq(    <tr>\n      <td>a</td>\n      <td>);
     my $label = $fm->localise("Previous");
-    print qq(<input type="submit" name="Previous" value="$label">) 
-  	unless $fm->{page_number} == FIRST_PAGENUM() 
-        or $fm->{previousbutton} == 0;
+#    print qq(        <input type="submit" name="Previous" value="$label">\n) 
+#  	unless $fm->{page_number} == FIRST_PAGENUM() 
+#        or $fm->{previousbutton} == 0;
 
+    unless ( $fm->{page_number} == FIRST_PAGENUM() or $fm->{previousbutton} == 0) {
+        print qq(    <tr>\n      <td></td>\n      <td>);
+        $html_printed=1;
+        print qq(        <input type="submit" name="Previous" value="$label">\n);
+    }
+ 
     # check whether it's the last page yet
     if ($fm->is_last_page()) {
         if ($fm->{finishbutton}) {
+            print qq(    <tr>\n      <td></td>\n      <td>) unless $html_printed;
             $label = $fm->localise("Finish");
-            print qq(<input type="submit" name="Finish" value="$label">\n);
+            print qq(      <input type="submit" name="Finish" value="$label">\n);
         }
     } else {
         if ($fm->{nextbutton}) {
+            print qq(    <tr>\n      <td></td>\n      <td>) unless $html_printed;
             $label = $fm->localise("Next");
             print qq(<input type="submit" name="Next" value="$label">\n);
         }
@@ -101,7 +110,7 @@ sub print_buttons {
     $label = $fm->localise("Clear this form");
     print qq(<input type="reset" value="$label">) 
   	if $fm->{resetbutton};
-    print qq(</div></td></tr>);
+    print qq(</td>\n    </tr>\n) if $html_printed;
 }
 
 
@@ -119,7 +128,7 @@ sub print_form_header {
 
     # print out the templated headers (based on what's specified in the
     # HTML) then an h1 containing the form element's title attribute
-   
+    
     print $fm->parse_template($fm->form->{header});
     print "<h1>", $fm->localise($title), "</h1>\n";
 }
@@ -163,24 +172,21 @@ sub print_page_header {
     my $fm = shift;
     my $title       = $fm->page->{title};
     my $description = $fm->page->{description};
-
-    # the level 2 heading is the page element's title heading
-    print "<h2>", $fm->localise($title), "</h2>\n";
-
-    if ($description) {
-	  print '<p class="pagedescription">', $fm->localise($description), "</p>\n";
-    }
-
     my $url = $fm->{cgi}->url(-relative => 1);
     my $enctype = $fm->get_page_enctype();
+
+    # the level 2 heading is the page element's title heading
+    print "<h2>", $fm->localise($title), "</h2>\n" if $title;
     print qq(<form method="POST" action="$url" enctype="$enctype">\n);
-
-    print qq(<input type="hidden" name="page" value="$fm->{page_number}">\n);
-    print qq(<input type="hidden" name="page_stack" value="$fm->{page_stack}">\n);
-    print $fm->{cgi}->state_field(), "\n";	# hidden field with state ID
-
-    print "<table>\n";
-  
+    print qq(  <input type="hidden" name="page" value="$fm->{page_number}">\n);
+    print qq(  <input type="hidden" name="page_stack" value="$fm->{page_stack}">\n);
+    print "  ",$fm->{cgi}->state_field(), "\n";	# hidden field with state ID
+    print "  <table class=\"sme-noborders\">\n";
+    #print "    <col width=\"250\"><col width=\"*\">\n";
+    if ($description) {
+	  #print '<p class="pagedescription">', $fm->localise($description), "</p>\n";
+	  print "  <tr><td colspan=2><p>", $fm->localise($description), "</p></td>\n  </tr>\n";
+    }
 }
 
 =pod
@@ -195,7 +201,7 @@ form and table close tags and stuff.
 sub print_page_footer {
     my $fm = shift;
   
-    print "</table>\n</form>\n";
+    print "  </table>\n</form>\n";
 }
 
 =pod 
@@ -210,7 +216,7 @@ sub print_field_description {
     my $fm = shift;
     my $d = shift;
     $d = $fm->localise($d);
-    print qq(<tr><td colspan=2><div class="fielddescription">$d</div></td></tr>);
+    print qq(    <tr>\n      <td colspan=2><p>$d</p></td>\n    </tr>);
 }
 
 
@@ -239,9 +245,8 @@ ok($_STDOUT_ !~ /le foo\./, "Output of print_field_error shouldn't have a dot on
 
 sub print_field_error {
     my ($fm, $e) = @_;
-    print qq(<br><div class="error" colspan=2>);
-    my $errstr = join "<br", map($fm->localise($_), @$e);
-    print qq(<br><div class="error" colspan=2>$errstr</div>);
+    my $errstr = join "<br>", map($fm->localise($_), @$e);
+    print "  "; print qq(<tr><td colspan=2><div class="sme-error">$errstr</div></td></tr>); print "\n";
 }
 
 =pod
@@ -260,26 +265,26 @@ sub display_fields {
     foreach my $field ( @{$fm->page->{fields}} ) {
         my $info = $fm->gather_field_info($field);
         if ($info->{type} eq "html") {
-            print qq(<tr><td cols="2">$info->{content}</td></tr>\n);
+            print qq(\n    <tr><td cols="2">$info->{content}</td></tr>\n) if $info->{content};
         } elsif ($info->{type} eq "subroutine") {
             my $output = $fm->do_external_routine($info->{src}) || "";
-            print qq(<tr><td cols="2">$output</td></tr>\n);
+            print qq(\n    <tr><td cols="2">$output</td></tr>\n) if $output;
         } else {
-            $fm->print_field_description($info->{description}) 
-                if $info->{description};
+            $fm->print_field_description($info->{description}) if $info->{description};
         
             if (($info->{type} eq "select") || ($info->{type} eq "radio")) {
                 $fm->set_option_lv($info);
             }
 
-            print qq(<tr><td><div class="label">) . $fm->localise($info->{label}) ;
+            print qq(    <tr>\n      <td class="sme-noborders-label">) . $fm->localise($info->{label}). "\n" ;
+            my $inputfield = $fm->build_inputfield($info);
+            # this is to make the printed HTML look nice
+            $inputfield =~ s#^\s*\n##g;
+            print  qq(      <td class="sme-noborders-content">$inputfield</td>\n    </tr>\n);
         
-            # display errors (if any) below the field label.
+            # display errors (if any) below the field label, taking up a whole row
             my $error = $fm->{errors}->{$info->{label}};
             $fm->print_field_error($error) if $error;
-                    
-            my $inputfield = $fm->build_inputfield($info);
-            print  qq(</div></td> <td><div class="field">$inputfield</div></td></tr>);
         }
     }
 }
@@ -396,6 +401,9 @@ sub build_inputfield {
     my $type = $converter->convert($info->{type});
     my $multiple = $converter->convert($info->{multiple});
     my $size = $converter->convert($info->{size});
+    my $rows = $converter->convert($info->{rows}) if ($info->{rows});
+    my $cols = $converter->convert($info->{cols}) if ($info->{cols});
+
 
     # value is already converted in gather_field_info IFF it came from the 
     # XML default (not user input or a subroutine, both of which 
@@ -460,10 +468,16 @@ sub build_inputfield {
         );
     } elsif ($info->{type} eq "literal") {
         $inputfield = $value;
+    } elsif ($info->{type} eq "textarea") {
+        $inputfield = $tagmaker->textarea(
+            name    => $id,
+            rows    => $rows || 5,
+            cols    => $cols || 60,
+        );
     } else {
         # map HTML::TagMaker's functions to the type of this field.
         my %translation_table = (
-            textarea => 'textarea',
+           # textarea => 'textarea',
             checkbox => 'input_field',
             text     => 'input_field',
             password => 'input_field',

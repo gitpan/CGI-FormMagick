@@ -3,6 +3,11 @@
 FormMagick Form Description DTD
 Kirrily "Skud" Robert (skud@infotrope.net)
 
+Copyright (c) 2000-2001 Kirrily Robert <skud@cpan.org>
+Copyright (c) 2000-2002 Mitel Networks Corporation 
+This software is distributed under the same licenses as Perl itself;
+see the file COPYING for details.
+
 -->
 
 <!-- General purpose elements (used below) -->
@@ -48,6 +53,8 @@ description.  All the other field-related information is in attributes.
 <!ATTLIST FIELD CHECKED		CDATA	#IMPLIED	>
 <!ATTLIST FIELD MULTIPLE    (YES|NO) "NO"       >
 <!ATTLIST FIELD SIZE        CDATA   #IMPLIED    >
+<!ATTLIST FIELD ROWS        CDATA   #IMPLIED    >
+<!ATTLIST FIELD COLS        CDATA   #IMPLIED    >
 
 <!-- An HTML fragment contains CDATA for HTML to put in that place -->
 
