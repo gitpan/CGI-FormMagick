@@ -3,9 +3,9 @@
 use Locale::Maketext;
 
 package CGI::FormMagick::L10N;
-@ISA = qw(Locale::Maketext);
-
-1;
+require Exporter;
+@ISA = qw(Locale::Maketext Exporter);
+@EXPORT = qw(add_lexicon check_l10n localise);
 
 =pod
 =head1 NAME
@@ -67,6 +67,144 @@ Validation error messages
 If you wish to localise other textual information such as your HTML 
 Templates, you will have to explicitly call the l10n routines.
 
+=head1 USER METHODS
+
+=head2 add_lexicon($lang, $lexicon_hashref)
+
+This method takes two arguments.  The first is a two-letter string
+representing the language to which entries should be added.  These are
+standard ISO language abbreviations, eg "en" for English, "fr" for
+French, "de" for German, etc.  
+
+The second argument is a hashref in which the keys of the hash are the 
+phrases to be translated and the values are the translations.
+
+For more information about how localization (L10N) works in FormMagick,
+see C<CGI::FormMagick::L10N>.
+
+=begin testing
+BEGIN: {
+    use_ok('CGI::FormMagick');
+    use vars qw($fm);
+    use lib "./lib";
+}
+
+$ENV{HTTP_ACCEPT_LANGUAGE} = $ENV{LANG} = $ENV{LANGUAGE} = "fr";
+
+my $xml = qq(
+  <FORM TITLE="FormMagick demo application" POST-EVENT="submit_order">
+    <PAGE NAME="Personal" TITLE="Personal details" POST-EVENT="lookup_group_info">
+      <FIELD ID="firstname" LABEL="first name" TYPE="TEXT" VALIDATION="nonblank"/>
+    </PAGE>
+  </FORM>
+);
+
+ok ($fm = new CGI::FormMagick(TYPE => 'STRING', SOURCE => $xml), "created fm object");
+
+ok( $fm->add_lexicon("fr", { "yes" => "oui" })     , "Simple add_lexicon");
+ok( not($fm->add_lexicon("fr", "abc" ))  , "Non-hashref lexicon should fail");
+ok( not($fm->add_lexicon("fr", (1,2,3))) , "Non-hashref lexicon should fail");
+ok( not($fm->add_lexicon("fr", [1,2,3])) , "Non-hashref lexicon should fail");
+TODO: {
+	local $TODO = "Haven't yet implemented tests for non-existent languages";
+	ok( not($fm->add_lexicon("xx", { yes => 'oui' }))     , "Non-existent language should fail");
+}
+
+=end testing
+
+=cut
+
+sub add_lexicon {
+	my ($self, $lang, $lexicon_hashref) = @_;
+
+	return undef unless ref($lexicon_hashref) eq "HASH";
+
+	# much reference nastiness to point to the Lexicon we want to change
+	# ... couldn't have done this without Schuyler's help.  Ergh.
+	# XXX needs work, no doubt
+
+	no strict 'refs';
+	my $changeme = "CGI::FormMagick::L10N::${lang}::Lexicon"; 
+
+	# XXX somewhere here we have to check if $changeme exists, but that's
+	# *hard*
+
+	my $hard_ref = \%$changeme;
+
+	while (my ($a, $b) = each %$lexicon_hashref) {
+		$hard_ref->{$a} = $b;
+	}
+	use strict 'refs';
+
+	#debug($self, "Our two refs are $hard_ref and $lex_ref");
+	#debug($self, "foo is " . $self->localise("foo"));
+	#debug($self, "Error is " . $self->localise("Error"));
+	return 1;
+}
+
+
+
+
+=head1 DEVELOPER METHODS 
+
+These routines are for internal use only, and are probably not of
+interest to anyone except FormMagick developers.
+
+=head2 localise($string)
+
+Translates a string into the end-user's preferred language by checking
+their HTTP_ACCEPT_LANG variable and pushing it through
+Locale::Maketext
+
+=for testing
+is($fm->localise("yes"), "oui", "Simple localisation");
+is($fm->localise("xyz"), "xyz", "Attempted localisation of untranslated string");
+is($fm->localise(""),    "",    "Fail gracefully on localisation of empty string");
+
+
+=cut
+
+sub localise {
+	my $fm = shift;
+	my $string = shift || "";
+	if (my $localised_string = $fm->{language}->maketext($string)) {
+		return $localised_string;
+	} else {
+		warn "L10N warning: No localisation string found for '$string' for language $ENV{HTTP_ACCEPT_LANGUAGE}";
+		return $string;
+	}
+}
+
+=pod
+
+=head2 check_l10n()
+
+print out lexica to check whether they're what you think they are
+this is mostly for debugging purposes
+
+=cut
+
+sub check_l10n {
+	my $self = shift;
+	print qq( <p>Your choice of language: $ENV{HTTP_ACCEPT_LANGUAGE}</p>);
+	my @langs = split(/, /, $ENV{HTTP_ACCEPT_LANGUAGE});
+	foreach my $lang (@langs) {
+		print qq(<h2>Language: $lang</h2>);
+
+		no strict 'refs';
+		my $lex= "CGI::FormMagick::L10N::${lang}::Lexicon";
+		debug($self, "Lexicon name is $lex");
+		debug($self, scalar(keys %$lex) . " keys in lexicon");
+		foreach my $term (keys %$lex) {
+			print qq(<p>$term<br>
+				<i>$lex->{$term}</i></p>);
+		}			
+		use strict 'refs';
+	}
+}
+
+=pod 
+
 =head1 SEE ALSO
 
 The general documentation for FormMagick (C<perldoc CGI::FormMagick>)
@@ -75,3 +213,5 @@ More information about FormMagick may be found at
 http://sourceforge.net/projects/formmagick/
 
 =cut
+
+1;

@@ -185,6 +185,12 @@ all of its methods, "params_to_hash()" and "params_to_array()".
 	</BODY>
 	</HTML>
 
+=for testing
+TODO: {
+    local $TODO = "Write tests for TagMaker!";
+    ok(0, "Fake test just to keep 'make test' happy");
+}
+
 =cut
 
 ######################################################################
@@ -546,11 +552,10 @@ and acts accordingly.
 ######################################################################
 
 sub make_html_tag {
-	my $self = shift( @_ );
-	my $tag_name = lc(shift( @_ ));
-	my $rh_params = shift( @_ );
-	my $text = shift( @_ );
-	my $what_to_make = lc(shift( @_ ));
+	my ($self, $tag_name, $rh_params, $text, $what_to_make) = @_; 
+	$tag_name     = lc($tag_name);
+	$what_to_make = lc($what_to_make);
+	$text         = $text || '';
 
 	my %tag_params = map { ( lc($_) => $rh_params->{$_} ) } 
 		(ref($rh_params) eq 'HASH') ? (keys %{$rh_params}) : ();
@@ -573,7 +578,9 @@ sub make_html_tag {
 		next if( $NO_VALUE_PARAMS{$param} and !$tag_params{$param} );
 		$param_str .= ' '.uc( $param );
 		unless( $NO_VALUE_PARAMS{$param} ) {
-			$param_str .= "=\"$tag_params{$param}\"";
+			if ($tag_params{$param}) {
+				$param_str .= "=\"$tag_params{$param}\"";
+			}
 		}
 	}
 

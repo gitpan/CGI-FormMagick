@@ -7,6 +7,11 @@ FormMagick FAQ - Frequently asked questions about FormMagick
 
 =head2 How do I check that my XML is valid?
 
+In theory, you validate it against the DTD provided with the FormMagick
+distribution, using a suitable XML validation tool.  Unfortuneately we
+haven't found one yet, but when we do we'll write a script and
+distribute it with FormMagick.
+
 =head2 How do I customise the look and feel of my forms?
 
 Use cascading style sheets.  Take a look at the HTML source output by

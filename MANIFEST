@@ -7,22 +7,26 @@ Makefile.PL
 README
 
 lib/CGI/FormMagick.pm
+lib/CGI/FormMagick/Setup.pm
+lib/CGI/FormMagick/Events.pm
 lib/CGI/FormMagick/FAQ.pod
 lib/CGI/FormMagick/Validator.pm
 lib/CGI/FormMagick/TagMaker.pm
 lib/CGI/FormMagick/L10N.pm
+lib/CGI/FormMagick/HTML.pm
+lib/CGI/FormMagick/Utils.pm
 
-examples/testfm.css
-examples/testfm.pl
-examples/testfm.xml
-examples/testfm_footer.tmpl
-examples/testfm_header.tmpl
+t/embedded-CGI-FormMagick.t
+t/embedded-CGI-FormMagick.xml
+t/embedded-CGI-FormMagick-Validator.t
+t/embedded-CGI-FormMagick-TagMaker.t
+t/embedded-CGI-FormMagick-L10N.t
+t/embedded-CGI-FormMagick-HTML.t
+t/embedded-CGI-FormMagick-Setup.t
+t/embedded-CGI-FormMagick-Utils.t
 
 examples/e-smith/README
 examples/e-smith/emailretrieval.pl
-examples/e-smith/emailretrieval.xml
-examples/e-smith/emailretrieval-orig.pl
-examples/e-smith/emailretrieval-orig.html
 examples/e-smith/e-smith.css
 examples/e-smith/head.tmpl
 examples/e-smith/foot.tmpl
@@ -36,8 +40,6 @@ doc/FormMagick.dia
 tools/README
 tools/extract-phrases.pl
 tools/mergetrans.pl
-
-test/testsuite.pl
 
 lib/CGI/FormMagick/L10N/en.pm
 lib/CGI/FormMagick/L10N/fr.pm

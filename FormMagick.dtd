@@ -5,28 +5,41 @@ Kirrily "Skud" Robert (skud@infotrope.net)
 
 -->
 
-<!ELEMENT FORM (PAGE+)> 
+<!-- General purpose elements (used below) -->
 
-<!ATTLIST FORM TITLE 		CDATA	#REQUIRED	>
+<!ELEMENT TITLE (#CDATA)				>
+<!ELEMENT DESCRIPTION (#CDATA)				>
+<!ELEMENT LABEL (#CDATA)				>
+
+<!-- The top level element is the form.  A form must contain a title
+element, and must contain one or more pages.  Other information about a
+form is kept in attributes. -->
+
+<!ELEMENT FORM (TITLE,PAGE+)>
+
 <!ATTLIST FORM HEADER-TEMPLATE 	CDATA	#IMPLIED	>
 <!ATTLIST FORM FOOTER-TEMPLATE 	CDATA	#IMPLIED	>
 <!ATTLIST FORM PRE-EVENT	CDATA	#IMPLIED	>
 <!ATTLIST FORM POST-EVENT	CDATA	#IMPLIED	>
 
-<!ELEMENT PAGE (FIELD+)>
+<!-- A page must have a title and at least one field, and may also
+optionally contain fragments. Various other information about pages is
+kept in attributes. -->
 
-<!ATTLIST PAGE TITLE		CDATA	#REQUIRED	>
+<!ELEMENT PAGE (TITLE,FIELD+,FRAGMENT*)>
+
 <!ATTLIST PAGE NAME		CDATA	#REQUIRED	>
-<!ATTLIST PAGE DESCRIPTION	CDATA	#IMPLIED	>
 <!ATTLIST PAGE PAGE-TEMPLATE 	CDATA	#IMPLIED	>
 <!ATTLIST PAGE PRE-EVENT 	CDATA	#IMPLIED	>
 <!ATTLIST PAGE POST-EVENT 	CDATA	#IMPLIED	>
 
-<!ELEMENT FIELD (EMPTY)>
+<!-- Fields within a page must have a label, and may optionally have a
+description.  All the other field-related information is in attributes.
+-->
 
-<!ATTLIST FIELD ID		ID	#REQUIRED	>
-<!ATTLIST FIELD LABEL		CDATA	#IMPLIED	>
-<!ATTLIST FIELD DESCRIPTION	CDATA	#IMPLIED	>
+<!ELEMENT FIELD (LABEL,DESCRIPTION?)>
+
+<!ATTLIST FIELD NAME		#REQUIRED	>
 <!ATTLIST FIELD VALUE 		CDATA	#IMPLIED	>
 <!ATTLIST FIELD VALIDATION	CDATA	#IMPLIED	>
 <!ATTLIST FIELD VALIDATION-ERROR-MESSAGE	CDATA	#IMPLIED	>
@@ -35,3 +48,9 @@ Kirrily "Skud" Robert (skud@infotrope.net)
 <!ATTLIST FIELD CHECKED		CDATA	#IMPLIED	>
 <!ATTLIST FIELD MULTIPLE    (YES|NO) "NO"       >
 <!ATTLIST FIELD SIZE        CDATA   #IMPLIED    >
+
+<!-- A fragment is an empty element with just one attribute: its source.
+-->
+
+<!ELEMENT FRAGMENT (EMPTY)>
+<!ATTLIST FRAGMENT SOURCE 	CDATA	#REQUIRED	>

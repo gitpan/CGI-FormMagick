@@ -1,7 +1,10 @@
 #!/usr/local/bin/perl -w
 
 use strict;
+use lib "../../lib/";
 use CGI::FormMagick;
+use Carp;
+
 
 #
 # suck in the XML from down below __DATA__
@@ -13,7 +16,7 @@ my $data = <DATA>;
 my $fm = new CGI::FormMagick(
         TYPE => "STRING",
 	SOURCE => "$data",
-	SESSIONDIR => "/home/skud/infotrope/tmp/examples/e-smith/wibble",
+	SESSIONDIR => "/home/skud/infotrope/tmp/formmagick/examples/e-smith/wibble",
 	DEBUG => 0,
 	PREVIOUSBUTTON => 0,
 	RESETBUTTON => 0,
@@ -32,7 +35,7 @@ closedir LOCALES;
 
 foreach my $l (@langs) {
 	my %lex;
-	open (TRANS, "$locale_dir/$l/emailretrieval") or die "Can't open translation file $locale_dir/$l/emailretrieval";
+	open (TRANS, "$locale_dir/$l/emailretrieval") or (carp "Can't open translation file $locale_dir/$l/emailretrieval" && next);
 	local $/ = "\n\n";
 	while (<TRANS>) {
 		my ($base, $trans) = split "\n";
@@ -54,14 +57,14 @@ $fm->display();
 # list of mailcheck frequencies
 
 sub mailcheck_frequencies {
-	return [
-		"Not at all",
-		"Every 5 minutes",
-		"Every 15 minutes",
-		"Every 30 minutes",
-		"Every hour",
-		"Every 2 hours"
-	];
+	return {
+		a => "Not at all",
+		b => "Every 5 minutes",
+		c => "Every 15 minutes",
+		d => "Every 30 minutes",
+		e => "Every hour",
+		f => "Every 2 hours"
+	};
 }
 
 sub post_Retrieval_page {
@@ -131,8 +134,7 @@ __END__
   FOOTER="foot.tmpl" POST-EVENT="update_email_settings">
   <PAGE NAME="Retrieval" TITLE="Change email retrieval settings" 
   POST-EVENT="post_Retrieval_page">
-    <FIELD ID="retrieval_mode" LABEL="Email retrieval mode" TYPE="SELECT" 
-      OPTIONS="'Standard','ETRN','Multi-drop'" VALIDATION="nonblank"
+    <FIELD ID="retrieval_mode" LABEL="Email retrieval mode" TYPE="SELECT" OPTIONS="'Standard','ETRN','Multi-drop'" VALIDATION="nonblank"
       DESCRIPTION="The mail retrieval mode can be set to standard (for dedicated Internet connections), ETRN (recommended for dialup connections), or multi-drop (for dialup connections if ETRN is not supported by your Internet provider)."/>
     <FIELD ID="delegate_server" LABEL="Delegate mail server" TYPE="TEXT" 
       DESCRIPTION="Your e-smith system includes a complete, full-featured email server. However, if for some reason you wish to delegate email processing to another system, specify the IP address of the delegate system here. For normal operation, leave this field blank."/>
@@ -141,7 +143,7 @@ __END__
   POST-EVENT="post_ETRNMultiDropOptions_page">
     <FIELD ID="secondary_server" LABEL="Secondary mail server" TYPE="TEXT" 
       VALIDATION="domain_name" DESCRIPTION="As you are using ETRN or Multi-drop, you must specify the hostname or IP address of your secondary mail server."/>
-    <FIELD ID="office_hours_frequency" LABEL="During office hours (8:00am to 6:00pm on weekdays)" TYPE="SELECT" 
+    <FIELD ID="office_hours_frequency" LABEL="During office hours (8:00am to 6:00pm on weekdays)" TYPE="SELECT" MULTIPLE="YES" 
       OPTIONS="mailcheck_frequencies()" VALIDATION="nonblank"
       DESCRIPTION="You can control how frequently the e-smith server and gateway contacts your secondary email server to fetch email. More frequent connections mean that you receive your email more quickly, but also cause Internet requests to be sent more often, possibly increasing your phone and Internet charges."/>
     <FIELD ID="outside_office_hours_frequency" LABEL="Outside office hours on weekdays" TYPE="SELECT" 
