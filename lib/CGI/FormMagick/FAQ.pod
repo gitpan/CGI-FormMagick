@@ -84,6 +84,8 @@ executable by the web server.  Either:
 
 Or...
 
-    chown 777 session-tokens
+    chmod 777 session-tokens
 
+Note that the latter allows anyone on the system to write to this
+directory, and is a greater security risk than the former method.
 

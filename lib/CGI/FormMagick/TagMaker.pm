@@ -1,108 +1,25 @@
 =head1 NAME
 
-HTML::TagMaker - Perl module that can create any HTML tags, as well as groups of
-or just parts of them, and complete html headers or footers.
+CGI::FormMagick::TagMaker - Generate HTML tags
 
 =cut
 
-######################################################################
-
 package CGI::FormMagick::TagMaker;
 require 5.004;
-
-# Copyright (c) 1999-2000, Darren R. Duncan. All rights reserved. This module is
-# free software; you can redistribute it and/or modify it under the same terms as
-# Perl itself.  However, I do request that this copyright information remain
-# attached to the file.  If you modify this module and redistribute a changed
-# version then please attach a note listing the modifications.
 
 use strict;
 use vars qw($VERSION @ISA $AUTOLOAD);
 $VERSION = '1.01';
 
-######################################################################
-
-=head1 DEPENDENCIES
-
-=head2 Perl Version
-
-	5.004
-
-=head2 Standard Modules
-
-	I<none>
-
-=head2 Nonstandard Modules
-
-	Class::ParamParser
-
-=cut
-
-######################################################################
-
 use Class::ParamParser;
 @ISA = qw( Class::ParamParser );
 
-######################################################################
-
 =head1 SYNOPSIS
 
-	use HTML::TagMaker;
+    use CGI::FormMagick::TagMaker;
 
-	my $html = HTML::TagMaker->new();
-	$html->groups_by_default( 1 );	
-
-	print
-		'Content-type: text/html'."\n\n",	
-		$html->start_html( 
-			-title => "This Is My Page", 
-			-style => { -code => <<__endquote },
-	\nBODY {
-		background-color: #ffffff; 
-		background-image: none;
-	}
-	__endquote
-		),	
-		$html->h1( 'A Simple Example' ),	
-		$html->p( 
-			"Click " . 
-			$html->a( href => 'http://search.cpan.org', text => 'here' ) . 
-			" for more."
-		),	
-		$html->hr,	
-		$html->table(
-			$html->tr( [
-				$html->th( [ 'Name', 'Count', 'URL', 'First Access' ] ), 
-				$html->td( [ 'Old Page', 33, 'http://www.domain.com', 
-					'1999/04/23 13:55:02' ] )
-			] )
-		),	
-		$html->hr,	
-		$html->form_start( method => 'post', action => 'http://localhost' ),
-		$html->p( 
-			"What's your name? " . 
-			$html->input( type => 'text', name => 'name' ) 
-		),
-		$html->p( 
-			"What's the combination?" .
-			$html->input_group( 
-				-type => 'checkbox', 
-				-name => 'words',
-				-value => ['eenie', 'meenie', 'minie', 'moe'],
-				-checked => [1, 0, 1, 0],
-				-text => ['eenie', 'meenie', 'minie', 'moe'] ),
-		),
-		$html->p( 
-			"What's your favorite colour? " .
-			$html->select_start( -size => 1, -name => 'color' ) .
-			$html->option_group(
-				-value => ['red', 'green', 'blue', 'chartreuse'], 
-				-text => ['Red', 'Green', 'Blue', 'Chartreuse'] ) .
-			$html->select_end
-		),
-		$html->input( type => 'submit' ),
-		$html->form_end,	
-		$html->end_html;
+    my $html = CGI::FormMagick::TagMaker->new();
+    $html->input( type => 'submit' ),
 
 =head1 DESCRIPTION
 
@@ -131,60 +48,6 @@ ensures they work with both string and numerical quantities (eg: key="value").
 Note that this class is a subclass of Class::ParamParser, and inherits
 all of its methods, "params_to_hash()" and "params_to_array()".
 
-=head1 HTML CODE FROM SYNOPSIS PROGRAM
-
-	Content-type: text/html
-
-
-	<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
-	<HTML>
-	<HEAD>
-	<TITLE>This Is My Page</TITLE>
-	<STYLE>
-	<!-- 
-	BODY {
-		background-color: #ffffff; 
-		background-image: none;
-	}
-	 --></STYLE>
-	</HEAD>
-	<BODY>
-	<H1>A Simple Example</H1>
-	<P>Click 
-	<A HREF="http://search.cpan.org">here</A> for more.</P>
-	<HR>
-	<TABLE>
-	<TR>
-	<TH>Name</TH>
-	<TH>Count</TH>
-	<TH>URL</TH>
-	<TH>First Access</TH></TR>
-	<TR>
-	<TD>Old Page</TD>
-	<TD>33</TD>
-	<TD>http://www.domain.com</TD>
-	<TD>1999/04/23 13:55:02</TD></TR></TABLE>
-	<HR>
-	<FORM METHOD="post" ACTION="http://localhost">
-	<P>What's your name? 
-	<INPUT TYPE="text" NAME="name"></P>
-	<P>What's the combination?
-	<INPUT TYPE="checkbox" NAME="words" CHECKED VALUE="eenie">eenie
-	<INPUT TYPE="checkbox" NAME="words" VALUE="meenie">meenie
-	<INPUT TYPE="checkbox" NAME="words" CHECKED VALUE="minie">minie
-	<INPUT TYPE="checkbox" NAME="words" VALUE="moe">moe</P>
-	<P>What's your favorite colour? 
-	<SELECT NAME="color" SIZE="1">
-	<OPTION VALUE="red">Red
-	<OPTION VALUE="green">Green
-	<OPTION VALUE="blue">Blue
-	<OPTION VALUE="chartreuse">Chartreuse
-	</SELECT></P>
-	<INPUT TYPE="submit">
-	</FORM>
-	</BODY>
-	</HTML>
-
 =for testing
 TODO: {
     local $TODO = "Write tests for TagMaker!";
@@ -193,7 +56,6 @@ TODO: {
 
 =cut
 
-######################################################################
 
 # Names of properties for objects of this class are declared here:
 my $KEY_AUTO_GROUP = 'auto_group';  # do we make tag groups by default?
@@ -266,22 +128,7 @@ my %PARAMS_PRECEDENCE = (   # larger number means goes first; undef last
 	alt => 100,
 );
 
-######################################################################
-
 =head1 SYNTAX
-
-This class does not export any functions or methods, so you need to call them
-using indirect notation.  This means using B<Class-E<gt>function()> for functions and
-B<$object-E<gt>method()> for methods.
-
-Methods of this class always "return" their results, rather than printing them
-out to a file or the screen.  Not only is this simpler, but it gives the calling
-code the maximum amount of control over what happens in the program.  They may
-wish to do post-processing with the generated HTML, or want to output it in a
-different order than it is generated.  By default, all results are returned as a
-scalar, but methods which generate a list of tags can optionally return an ARRAY
-ref, with each element containing a single tag.  This can aid in post-processing
-and possibly speed up the program because there is less copying done.
 
 Through the magic of autoloading, this class can make any html tag by calling a
 class method with the same name as the tag you want.  For examples, use "hr()" to
@@ -334,7 +181,6 @@ any named parameters can optionally start with a "-".
 
 =cut
 
-######################################################################
 # All HTML tags have a method of this class associated with them.
 
 sub AUTOLOAD {
@@ -370,8 +216,6 @@ sub AUTOLOAD {
 sub DESTROY {
 }
 
-######################################################################
-
 =head1 FUNCTIONS AND METHODS
 
 Note that all the methods defined below are static, so information specific to
@@ -383,61 +227,22 @@ positional arguments unless otherwise specified.
 This function creates a new HTML::TagMaker object (or subclass thereof) and 
 returns it.
 
-=cut
+=for testing
+BEGIN: { 
+    use_ok('CGI::FormMagick::TagMaker'); 
+}
+my $t = CGI::FormMagick::TagMaker->new();
+isa_ok($t, 'CGI::FormMagick::TagMaker');
 
-######################################################################
+=cut
 
 sub new {
 	my $class = shift( @_ );
 	my $self = bless( {}, ref($class) || $class );
-	$self->initialize( @_ );
-	return( $self );
-}
-
-######################################################################
-
-=head2 initialize()
-
-This method is used by B<new()> to set the initial properties of an object,
-that it creates.  All page attributes are wiped clean, resulting in an empty
-page.
-
-=cut
-
-######################################################################
-
-sub initialize {
-	my $self = shift( @_ );
 	$self->{$KEY_AUTO_GROUP} = 0;
 	$self->{$KEY_AUTO_POSIT} = 0;
+	return( $self );
 }
-
-######################################################################
-
-=head2 clone([ CLONE ])
-
-This method initializes a new object to have all of the same properties of the
-current object and returns it.  This new object can be provided in the optional
-argument CLONE (if CLONE is an object of the same class as the current object);
-otherwise, a brand new object of the current class is used.  Only object 
-properties recognized by HTML::TagMaker are set in the clone; other properties 
-are not changed.
-
-=cut
-
-######################################################################
-
-sub clone {
-	my ($self, $clone, @args) = @_;
-	ref($clone) eq ref($self) or $clone = bless( {}, ref($self) );
-	
-	$clone->{$KEY_AUTO_GROUP} = $self->{$KEY_AUTO_GROUP};
-	$clone->{$KEY_AUTO_POSIT} = $self->{$KEY_AUTO_POSIT};
-	
-	return( $clone );
-}
-
-######################################################################
 
 =head2 groups_by_default([ VALUE ])
 
@@ -454,8 +259,6 @@ when we are making a "single", ARRAY ref arguments are always used literally.
 
 =cut
 
-######################################################################
-
 sub groups_by_default {
 	my $self = shift( @_ );
 	if( defined( my $new_value = shift( @_ ) ) ) {
@@ -463,8 +266,6 @@ sub groups_by_default {
 	}
 	return( $self->{$KEY_AUTO_GROUP} );
 }
-
-######################################################################
 
 =head2 positional_by_default([ VALUE ])
 
@@ -475,8 +276,6 @@ sure what we are given, do we guess positional?  Default is named.
 
 =cut
 
-######################################################################
-
 sub positional_by_default {
 	my $self = shift( @_ );
 	if( defined( my $new_value = shift( @_ ) ) ) {
@@ -484,52 +283,6 @@ sub positional_by_default {
 	}
 	return( $self->{$KEY_AUTO_POSIT} );
 }
-
-######################################################################
-
-=head2 prologue_tag()
-
-This method returns a prologue tag, which is meant to be the very first thing in
-an HTML document.  It tells the web browser such things as what version of the
-HTML standard we are adhering to, version 4.0 in this case.  The prologue tag we
-make looks like '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">'.
-
-=cut
-
-######################################################################
-
-sub prologue_tag {
-	my $self = shift( @_ );
-	return( "\n".'<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">' );
-}
-
-######################################################################
-
-=head2 comment_tag( TEXT )
-
-This method returns a comment tag, which is only visible to people viewing the
-HTML source of a document, and not otherwise.  It can take either a scalar or a
-list or an Array ref as its TEXT argument.  If a single item of text is passed,
-then a comment tag that looks like "<!-- text -->" is made.  If more than one
-item of text is passed, then a multi-line comment is made, which has each item of
-text on its own line and indented with a single tab.  The latter is suitable for
-displaying CSS or JavaScript code in an elegant manner.
-
-=cut
-
-######################################################################
-
-sub comment_tag {
-	my $self = shift( @_ );
-	my @text = (ref($_[0]) eq 'ARRAY') ? @{$_[0]} : @_;	
-	if( scalar( @text ) <= 1 ) {
-		return( "\n<!-- @text -->" );
-	} else {
-		return( "\n<!-- \n\t".join( "\n\t", @text )."\n -->" );
-	}
-}
-
-######################################################################
 
 =head2 make_html_tag( NAME[, PARAMS[, TEXT[, PART]]] )
 
@@ -548,8 +301,6 @@ are normally paired or not, which tag attributes take specified values or not,
 and acts accordingly.
 
 =cut
-
-######################################################################
 
 sub make_html_tag {
 	my ($self, $tag_name, $rh_params, $text, $what_to_make) = @_; 
@@ -591,8 +342,6 @@ sub make_html_tag {
 	return( "\n<$tag_name_uc$param_str>$text</$tag_name_uc>" );
 }
 
-######################################################################
-
 =head2 make_html_tag_group( NAME[, PARAMS[, TEXT[, LIST]]] )
 
 This method is used internally to do the actual construction of html tag groups. 
@@ -613,8 +362,6 @@ This method knows which HTML tags are normally paired or not, which tag
 attributes take specified values or not, and acts accordingly.
 
 =cut
-
-######################################################################
 
 sub make_html_tag_group {
 	my $self = shift( @_ );
@@ -674,119 +421,8 @@ sub make_html_tag_group {
 	return( $force_list ? \@new_tags : join( '', @new_tags ) );
 }
 
-######################################################################
-
-=head2 start_html([ TITLE[, AUTHOR[, META[, STYLE[, HEAD[, BODY]]]]] ])
-
-This method returns a canned HTML template that is suitable for use as the top of
-an HTML page.  It consists of the prologue tag (<!DOCTYPE...), the opening 'html'
-tag, the entire 'head' section, and the opening 'body' tag.  The prologue tag
-looks the same as that generated by the class method prologue_tag().  This method
-can take its optional six arguments in either named or positional format; in the
-first case, the names look the same as the positional placeholders above, except
-they must be in lower case.  The first two arguments, TITLE and AUTHOR, are
-scalars which respectively define the title and author for the document.  The
-default value for TITLE is 'Untitled Document', and a '<LINK REV="made">' tag is
-made if AUTHOR is present.  The third argument, META, is a HASH ref containing
-name/value pairs of meta information, and a '<META NAME="n" VALUE="v">' tag is
-made for each one.  The fourth argument, STYLE, allows Cascading Style Sheets to
-be used in the document.  See the method B<css_for_start_html()>, which handles
-the particulars of this argument.  The fifth argument, HEAD, is an ARRAY ref (or
-scalar) containing anything else you would like to appear in the 'head' section;
-it is flattened and the elements used as-is.  The sixth argument, BODY, is a HASH
-ref containing attributes and values for the opening 'body' tag.
-
-=cut
-
-######################################################################
-
-sub start_html {
-	my $self = shift( @_ );
-	my $rh_params = $self->params_to_hash( \@_, 
-		$self->{$KEY_AUTO_POSIT}, qw(title author meta style head body) );
-
-	my %meta = (ref( $rh_params->{'meta'} ) eq 'HASH') ?
-		%{$rh_params->{'meta'}} : ();
-	my $style = $self->css_for_html_head( $rh_params->{'style'} );
-	my @head = (ref( $rh_params->{'head'} ) eq 'ARRAY') ?
-		@{$rh_params->{'head'}} : ();
-	
-	return( join( '',
-		$self->prologue_tag(),
-		$self->html_start(),
-		$self->head_start(),
-		$self->title( $rh_params->{'title'} || 'Untitled Document' ),
-		(defined $rh_params->{'author'}) ? $self->link( 
-			rev => 'made', href => "mailto:$rh_params->{'author'}" ) : (),
-		%meta ? (map { 
-			$self->meta_group( name => $_, value => $meta{$_} ) 
-			} keys %meta) : (),
-		$style,
-		@head,
-		$self->head_end(),
-		$self->body_start( $rh_params->{'body'} ),
-	) );
-}
-
-######################################################################
-
-=head2 end_html()
-
-This method returns a canned HTML template that is suitable for use as the bottom
-of an HTML page.  It consists of the closing 'body' and 'html' tags.
-
-=cut
-
-######################################################################
-
-sub end_html {
-	my $self = shift( @_ );
-	return( $self->body_end().$self->html_end() );
-}
-
-######################################################################
-
-=head2 css_for_start_html([ SRC[, CODE] ])
-
-This method returns HTML code that allows Cascading Style Sheets to be used in
-the document when the code is included in its "head" section.  This method is
-used by start_html() to handle its STYLE argument.  This method can take its
-optional arguments in either named or positional format; in the first case, the
-names look the same as the positional placeholders above, except they must be in
-lower case.  The first argument, SRC, is an Array ref (or scalar) whose elements
-are urls for external StyleSheet documents that should be linked to by the
-browser, and a '<LINK REL="stylesheet" SRC="url">' tag is made for each one.  The
-second argument, CODE, is an Array ref (or scalar) whose elements are lines of
-StyleSheet code that are to be embedded in the HTML document itself; a
-"<STYLE><!-- code --></STYLE>" multi-line tag is made for them.  When both
-arguments are used, the SRC appears first in the new HTML.
-
-=cut
-
-######################################################################
-
-sub css_for_html_head {
-	my $self = shift( @_ );
-	my $rh_params = $self->params_to_hash( \@_, 
-		$self->{$KEY_AUTO_POSIT}, qw(src code) );
-
-	my @style_src = (ref( $rh_params->{'src'} ) eq 'ARRAY') ?
-		@{$rh_params->{'src'}} : $rh_params->{'src'};
-	my @style_code = (ref( $rh_params->{'code'} ) eq 'ARRAY') ?
-		@{$rh_params->{'code'}} : $rh_params->{'code'};
-	
-	return( join( '',
-		(defined $style_src[0]) ? $self->link_group( rel => 'stylesheet', 
-			type => 'text/css', href => \@style_src ) : (),
-		(defined $style_code[0]) ? $self->style( $self->comment_tag( 
-			\@style_code ) ) : (),
-	) );
-}
-
-######################################################################
-
 1;
-__END__
+
 
 =head1 COMPATABILITY WITH OTHER MODULES
 
@@ -843,51 +479,27 @@ ensuring that about 20 often-used tag attributes always appear in the same order
 
 =back
 
-=head1 AUTHOR
 
-Copyright (c) 1999-2000, Darren R. Duncan. All rights reserved. This module is
-free software; you can redistribute it and/or modify it under the same terms as
-Perl itself.  However, I do request that this copyright information remain
-attached to the file.  If you modify this module and redistribute a changed
+=head1 COPYING
+
+Copyright (c) 2000-2001, Kirrily "Skud" Robert <skud@cpan.org>
+
+This module is free software; you can redistribute it and/or modify it
+under the same terms and Perl itself. 
+
+This module is based on Darren Duncan's HTML::TagMaker, the copyright
+notice for which appears below:
+
+Copyright (c) 1999-2000, Darren R. Duncan. All rights reserved. 
+
+This module is free software; you can redistribute it and/or modify it under 
+the same terms as Perl itself.  However, I do request that this copyright information 
+remain attached to the file.  If you modify this module and redistribute a changed
 version then please attach a note listing the modifications.
-
-I am always interested in knowing how my work helps others, so if you put this
-module to use in any of your own code then please send me the URL.  Also, if you
-make modifications to the module because it doesn't work the way you need, please
-send me a copy so that I can roll desirable changes into the main release.
-
-Address comments, suggestions, and bug reports to B<perl@DarrenDuncan.net>.
-
-=head1 CREDITS
-
-Thanks very much to B<Kevin Werbach> for publishing "The Bare Bones Guide to
-HTML", which I found to be an invaluable resource when writing this module (and
-at other times as well).  The latest version of the document is available at
-B<http://werbach.com/barebones/>.
-
-This quick reference lists all the HTML tags that current browsers are likely to
-recognize, including all the elements of the official HTML 4.0 recommendation,
-and some Netscape and Microsoft extensions as well.  Common attributes for these
-tags are also included in context, giving a good idea on how they are used.
-
-When writing this module, I used the Bare Bones reference to verify the
-consistant formatting used by all HTML tags, including how tag attributes are
-formatted.  I could see the proper formatting for prologue and comment tags as
-well; their formats are unique compared to all the other tags.  The other main
-uses I had for the document was in determining all the HTML tags which were not
-used as a pair (most use pairs, few don't), and for determining which tag
-attributes made a positive assertion just by their presence, without need for any
-associated values (most have values, few don't).
-
-Thanks also to B<Lincoln D. Stein> for publishing the popular CGI.pm module,
-which I found very useful in my programs.  Moreover, I have decided to emulate
-much of its functionality in some of my own modules, so I should give credit
-where its due for implementing that functionality first.  Lincoln should be
-pleased that I am following his advice (look under heading "BUGS" in CGI) and
-discarding his large and monolithic module in favor of simpler ones.
 
 =head1 SEE ALSO
 
-perl(1), CGI, Class::ParamParser.
+L<CGI::FormMagick>
+
 
 =cut

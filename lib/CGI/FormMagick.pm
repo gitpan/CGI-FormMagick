@@ -1,16 +1,14 @@
-#!/usr/bin/perl -w 
-#
-# FormMagick (c) 2000-2001 Kirrily Robert <skud@cpan.org>
+#!/usr/bin/perl -w # # FormMagick (c) 2000-2001 Kirrily Robert <skud@cpan.org>
 # This software is distributed under the same licenses as Perl; see
 # the file COPYING for details.
 
 #
-# $Id: FormMagick.pm,v 1.56 2001/09/24 20:20:55 skud Exp $
+# $Id: FormMagick.pm,v 1.86 2002/01/22 21:16:50 skud Exp $
 #
 
 package    CGI::FormMagick;
 
-my $VERSION = $VERSION = "0.49";
+my $VERSION = $VERSION = "0.50";
 
 use XML::Parser;
 use Text::Template;
@@ -22,9 +20,14 @@ use CGI::FormMagick::HTML;
 use CGI::FormMagick::Setup;
 use CGI::FormMagick::Events;
 use CGI::FormMagick::Utils;
+use CGI::FormMagick::Sub;
 
 use strict;
 use Carp;
+
+use constant 'FIRST_PAGENUM' => 0; 
+
+use vars qw( $AUTOLOAD );
 
 =pod 
 
@@ -42,11 +45,6 @@ CGI::FormMagick - easily create CGI form-based applications
   my $f = new CGI::FormMagick(
       TYPE => FILE,  
       SOURCE => $myxmlfile, 
-      DEBUG => 1
-      SESSIONDIR = "/tmp/session-tokens"
-      PREVIOUSBUTTON = 1,
-      RESETBUTTON = 0,
-      STARTOVERLINK = 0
   );
 
   # other types available
@@ -110,31 +108,13 @@ optional arguments (as a hash):
 
 =item TYPE
 
-Defaults to "FILE" (the only currently implemented type).  Eventually
-we'll also allow such things as FILEHANDLE, STRING, etc (c.f.
-Text::Template, which does this quite nicely).
+Defaults to "FILE".  "STRING" is also available, in which case you must
+specify a SOURCE which is either a literal string or a scalar variable.
 
 =item SOURCE
 
 Defaults to a filename matching that of your script, only with an
 extension of .xml (we got this idea from XML::Simple).
-
-=item DEBUG
-
-Defaults to 0 (no debug output).  Setting it to 1 (or any other true
-value) will cause debugging messages to be output.
-
-=item PREVIOUSBUTTON
-
-Defaults to 1 ("Previous" button is shown).
-
-=item RESETBUTTON
-
-Defaults to 1 ("Clear this form" button is shown).
-
-=item STARTOVERLINK
-
-Defaults to 1 ("Start over" link at the bottom of the page is shown).
 
 =back
 
@@ -145,18 +125,9 @@ BEGIN: {
     use lib "lib/";
 }
 
-my $xml = qq(
-  <FORM TITLE="FormMagick demo application" POST-EVENT="submit_order">
-    <PAGE NAME="Personal" TITLE="Personal details" POST-EVENT="lookup_group_info">
-      <FIELD ID="firstname" LABEL="first name" TYPE="TEXT" VALIDATION="nonblank"/>
-      <FIELD ID="lastname" LABEL="last name" TYPE="TEXT" VALIDATION="nonblank"/>
-    </PAGE>
-  </FORM>
-);
-
 ok(CGI::FormMagick->can('new'), "We can call new");
-ok($fm = CGI::FormMagick->new(TYPE => 'STRING', SOURCE => $xml), "create fm object"); 
-ok($fm->isa('CGI::FormMagick'), "fm object is what we expect");
+ok($fm = CGI::FormMagick->new(TYPE => 'FILE', SOURCE => "t/simple.xml"), "create fm object"); 
+isa_ok($fm, 'CGI::FormMagick');
 
 =end testing
 
@@ -175,6 +146,7 @@ sub new {
 
     foreach (qw(PREVIOUSBUTTON RESETBUTTON STARTOVERLINK)) {
         if (exists $args{$_}) {
+            warn("$_ as arg to new() is deprecated -- use accessor method instead\n");
             $self->{lc($_)} = $args{$_};
         } else {
             $self->{lc($_)} = 1;
@@ -182,7 +154,6 @@ sub new {
     }	
 
     $self->{xml}       = $self->parse_xml();
-    $self->{clean_xml} = $self->clean_xml();
 
     # figure out what language we're using
     $self->{language} = CGI::FormMagick::L10N->get_handle()
@@ -194,6 +165,121 @@ sub new {
 
     return $self;
 }
+
+=pod
+
+=head2 previousbutton()
+
+With no arguments, tells you whether the previousbutton will be
+displayed or not.  If you give it a true argument (eg 1) it will set the
+previous button to be displayed.  A false value (eg 0) will set it to
+not be displayed.
+
+=head2 nextbutton()
+
+As for previousbutton, but affects the "Next" button.  NOTE: NYI.
+
+=head2 finishbutton()
+
+Ditto, NYI.
+
+=head2 resetbutton()
+
+Ditto.
+
+=head2 startoverlink()
+
+Ditto.
+
+=head2 debug()
+
+Turns debugging on/off.
+
+
+
+
+=begin testing
+
+is($fm->previousbutton, 1, "Previous button set on to begin with");
+$fm->previousbutton(0);
+is($fm->previousbutton, 0, "Previous button turned off");
+$fm->previousbutton(1);
+is($fm->previousbutton, 1, "Previous button turned on again");
+$fm->previousbutton("");
+is($fm->previousbutton, 0, "Previous button turned off with empty string");
+$fm->previousbutton("a");
+is($fm->previousbutton, 1, "Previous button turned on with true string");
+
+is($fm->debug, 0, "Debug set off to begin with");
+$fm->debug(1);
+is($fm->debug, 1, "Debug turned on");
+$fm->debug(0);
+
+=end testing
+
+=cut
+
+sub AUTOLOAD {
+    my ($self, $onoff) = @_;
+    my ($called_sub_name) = ($AUTOLOAD =~ m/([^:]*)$/);
+    $called_sub_name = lc($called_sub_name);
+    my @flags = qw(
+        previousbutton 
+        nextbutton 
+        finishbutton 
+        resetbutton 
+        startoverlink 
+        debug
+    );
+    if (grep /^$called_sub_name$/, @flags) {
+        if ($onoff) {
+            $self->{$called_sub_name} = 1;
+        } elsif (defined $onoff) {
+            $self->{$called_sub_name} = 0;
+        } else {
+            return $self->{$called_sub_name};
+        }
+    }
+}
+
+=pod
+
+=head2 sessiondir()
+
+With no arguments, tells you the directory in which session tokens are
+kept.
+
+With a true value, set the session directory, in which session tokens are kept.  Defaults
+to C<session-tokens> under the directory in which your CGI script is
+kept, but you probably want to set it to something outside the web tree.
+
+With a false (but defined) value, resets the session dir to its default
+value.
+
+=begin testing
+
+like($fm->sessiondir, qr(/session-tokens/), "Session dir set on to begin with");
+$fm->sessiondir("/tmp");
+is($fm->sessiondir, "/tmp", "Session dir changed");
+$fm->sessiondir(0);
+like($fm->sessiondir, qr(/session-tokens/), "Session dir returned to default");
+
+=end testing
+
+=cut
+
+sub sessiondir {
+    my ($self, $sd) = @_;
+    if ($sd) {
+        $self->{sessiondir} = $sd;
+    } elsif (defined $sd) {
+        $self->{sessiondir} = "./session-tokens/";
+    } else {
+        return $self->{sessiondir};
+    }
+}
+
+
 =pod
 
 =head2 display()
@@ -201,7 +287,10 @@ sub new {
 The display method displays your form.  It takes no arguments.
 
 =for testing
-ok($fm->display(), "Display");
+SKIP: {
+    skip "Problems with CGI::Persistent", 1 unless 0;
+    ok($fm->display(), "Display");
+}
 
 =cut
 
@@ -212,7 +301,6 @@ sub display {
         local $^W = 0;
         # create a session-handling CGI object
         $self->{cgi} = new CGI::Persistent $self->{sessiondir};
-        $^W = 1;
     }
 
     print $self->{cgi}->header;
@@ -221,73 +309,81 @@ sub display {
     $self->check_l10n() if $self->{cgi}->param('checkl10n');
 
     # pick up page number from CGI, else default to 1
-    $self->{page_number} = $self->{cgi}->param("page") || 0;
-    $self->debug("The current page number is $self->{page_number}");
+    $self->{page_number} = $self->{cgi}->param("page") || FIRST_PAGENUM;
+    $self->debug_msg("The page number started out as $self->{page_number}");
 
-    $self->{page_stack} = $self->{cgi}->param("page_stack") || "";
-    $self->debug("The page stack is currently $self->{page_stack}");
+    if (defined $self->{cgi}->param("page_stack")) {
+        $self->{page_stack} = $self->{cgi}->param("page_stack")
+    } else {
+        $self->{page_stack} = "";
+    }
 
-    $self->debug("The current page object is " . $self->page());
+    $self->debug_msg("The page stack started out as $self->{page_stack}");
 
     # Check whether they clicked "Previous" or something else
     # If they clicked previous, we avoid validation etc.  See
     # doc/pageflow.dia for details
 
-    if (not $self->{cgi}->param("wherenext")) {
-        # do nothing ... we want the first page
-    } elsif ($self->{cgi}->param("wherenext") eq "Previous") {
+    if ($self->{cgi}->param("Previous")) {
         $self->{page_number} = $self->pop_page_stack();
-    } else {
+        $self->debug_msg("Going to previous page, the page number is now
+        $self->{page_number} and the stack is $self->{page_stack}");
+    } elsif ($self->just_starting) {
+        $self->form_pre_event();
+    } else { 
         $self->prepare_for_next_page();
     }
 
-    $self->debug("The new page number is $self->{page_number}");
-    $self->debug("The new page stack is $self->{page_stack}");
-    $self->debug("The new page object is " . $self->page());
-
-    # We do the form pre-event if we're on page 1, BUT only if it's
-    # the first time we've displayed it.  We can tell that by the fact
-    # that there's no "page" parameter in the CGI, since that tells us
-    # where we've just come from.  In other words, we don't do the
-    # form pre-event if someone clicked "Previous" on page 2.
-
-    $self->form_pre_event() 
-        if (($self->{page_number} == 1) and not ($self->{cgi}->param("page")));
-
-    # we ALWAYS do the page pre-event on the new page
-    $self->page_pre_event(); 
-  
     $self->print_form_header();
 
-    $self->print_rest_of_page();
-}
+    if ($self->finished()) {
+	$self->validate_all();
+	$self->form_post_event();
+    } else {
+        $self->page_pre_event(); 
+        $self->print_page();
+    }
 
+    $self->print_form_footer();
+    $self->clear_navigation_params(); 
+    
+} 
 
 =head1 FORMMAGICK XML TUTORIAL
 
 =head2 Form descriptions
 
+The main thing you need to know to use FormMagick is the structure 
+and syntax of FormMagick forms.  FormMagick is based on a "wizard" sort
+of interface, in which one form has many pages, and each page has many
+fields.  This is expressed as a nested hierarchy of XML elements.
+
 The following is an example of how a form is described in XML. More
 complete examples can be found in the C<examples/> subdirectory in the
 CGI::FormMagick distribution.
 
-  <FORM TITLE="My form application" HEADER="myform_header.tmpl" 
-    FOOTER="myform_footer.tmpl" POST-EVENT="submit_order">
-    <PAGE NAME="Personal" TITLE="Personal details" DESCRIPTION="Please
-    provide us with the following personal details for our records">
+  <FORM TITLE="My form application" POST-EVENT="submit_order">
+    <PAGE NAME="Personal" TITLE="Personal details" />
+      <DESCRIPTION>
+        Please provide us with the following personal details for 
+        our records
+      </DESCRIPTION>
       <FIELD ID="firstname" LABEL="Your first name" TYPE="TEXT" 
         VALIDATION="nonblank"/>
       <FIELD ID="lastname" LABEL="Your surname" TYPE="TEXT" 
         VALIDATION="nonblank"/>
       <FIELD ID="username" LABEL="Choose a username" TYPE="TEXT" 
-        VALIDATION="username" DESCRIPTION="Your username must
-	be between 3 and 8 characters in length and contain only letters
-	and numbers."/>
+        VALIDATION="username" />
+      <FIELD ID="color" LABEL="Choose a color" TYPE="RADIO"
+        OPTIONS="'red', 'green', 'blue'"/>
     </PAGE>
     <PAGE NAME="Payment" TITLE="Payment details"
-    POST-EVENT="check_credit_card" DESCRIPTION="We need your full credit
-    card details to process your order.  Please fill in all fields.
-    Your card will be charged within 48 hours.">
+    POST-EVENT="check_credit_card" />
+      <DESCRIPTION>
+        We need your full credit card details to process your 
+        order.  Please fill in all fields.  Your card will be 
+        charged within 48 hours.
+      </DESCRIPTION>
       <FIELD ID="cardtype" LABEL="Credit card type" TYPE="SELECT" 
         OPTIONS="list_credit_card_types" VALIDATION="credit_card_type"
 		MULTIPLE="NO"/>
@@ -296,11 +392,9 @@ CGI::FormMagick distribution.
       <FIELD ID="cardexpiry" LABEL="Expiry date (MM/YY)" TYPE="TEXT" 
         VALIDATION="credit_card_expiry"/>
     </PAGE>
-    <PAGE NAME="Random" TITLE="Random fields">
+    <PAGE NAME="Confirmation" TITLE="Confirmation">
       <FIELD ID="confirm" LABEL="Click here to confirm" TYPE="CHECKBOX"
         VALUE="confirm" CHECKED="0"/>
-      <FIELD ID="color" LABEL="Choose a color" TYPE="RADIO"
-        OPTIONS="'red', 'green', 'blue'"/>
     </PAGE>
   </FORM>
 
@@ -308,58 +402,204 @@ The XML must comply with the FormMagick DTD (included in the
 distribution as FormMagick.dtd).  A command-line tool to test compliance
 is planned for a future release.
 
-=head2 Field parameters
+Here is an explanation of the nesting of elements and the attributes
+supported by each element.
 
-Fields must ALWAYS have an ID value, which is a unique name for the
-field. Optional parameters are:
+=head1 FORMS
+
+=head2 Form sub-elements
+
+A form may contain the following elements:
 
 =over 4
 
-=item * LABEL (a short description)
+=item *
 
-=item * DESCRIPTION (a more verbose description)
-
-=item * VALUE (see below)
-
-=item * VALIDATION (a list of validation functions: see CGI::FM::Validator)
-
-=item * VALIDATION-ERROR-MESSAGE
-
-=item * TYPE (see below)
-
-=item * OPTIONS (see below)
-
-=item * CHECKED (for CHECKBOX fields, does this start off checked?)
-
-=item * MULTIPLE (for SELECT fields, can user select more than one value?)
-
-=item * SIZE (for SELECT fields, height; for TEXT and TEXTAREA fields, length)
+PAGE
 
 =back
+
+=head2 Form attributes
+
+The following attributes are supported for forms:
+
+=over 4
+
+=item *
+
+PRE-EVENT (a subroutine to run before the form is displayed)
+
+=item *
+
+POST-EVENT (a subroutine to run after the form is completed)
+
+=back
+
+=head2 Example
+
+    <FORM PRE-EVENT="setup()" POST-EVENT="submit()>
+        <PAGE> ... </PAGE>
+        <PAGE> ... </PAGE>
+        <PAGE> ... </PAGE>
+    </FORM>
+
+=head1 PAGES
+
+=head2 Page sub-elements
+
+A page may contain the following sub-elements:
+
+=over 4
+
+=item *
+
+DESCRIPTION
+
+=item *
+
+FIELD
+
+=back
+
+
+=head2 Page attributes
+
+The following attributes are supported for pages:
+
+=over 4
+
+=item * 
+
+NAME (required)
+
+=back
+
+=head2 Example
+
+    <PAGE NAME="RoomType" POST-EVENT="check_availability">
+      <DESCRIPTION>
+        Please provide us with details of your preferred room.
+      </DESCRIPTION>
+      <FIELD> ... </FIELD>
+      <FIELD> ... </FIELD>
+      <FIELD> ... </FIELD>
+    </PAGE>
+
+
+=head1 FIELDS
+
+Fields are the most important part of the form definition.  Several
+types of HTML fields are supported, and each one has various attributes
+associated with it.
+
+=head2 Field types
+
+You can specify the type of HTML field to be generated using the TYPE
+attribute:
+
+    <FIELD TYPE="...">
 
 The following field types are supported:
 
 =over 4
 
-=item *
+=item TEXT 
 
-TEXT
+A plain text field.  You may optionally use the SIZE attribute to modify
+the size of the field displayed.  To restrict the length of data entered
+by the user, use the maxlength() validation routine.
 
-=item *
+=item SELECT 
 
-TEXT (SIZE attribute is optional)
+A dropdown list.  You must provide the OPTIONS attribute to specify the
+contents of the list (see below for the format of this attribute).  If
+you set the MULTIPLE attribute to 1, multiple selections will be
+enabled.  The optional SIZE attribute sets the number of items displayed
+at once.
+
+=item RADIO 
+
+Radio buttons allow users to choose one item from a group.  This field
+type requires the OPTIONS attribute (as for SELECT, above).
+
+=item CHECKBOX 
+
+This field type provides a simple check box for yes/no questions.  The
+CHECKED attribute is optional, but if set to 1 will make the checkbox
+checked by default.
+
+=item PASSWORD
+
+The PASSWORD field type is like a TEXT field, but obscures the data
+typed in by the user.
+
+=item FILE
+
+This field type allows the upload of a file by the user.
+
+=back
+
+=head2 Field sub-elements
+
+The following elements may be nested within a field:
+
+=over 4
 
 =item * 
 
-SELECT (requires OPTIONS attribute, MULTIPLE and SIZE are optional)
+LABEL (a short description; required)
 
-=item *
+=item * 
 
-RADIO (requires OPTIONS attribute)
+DESCRIPTION (a more verbose description; optional)
 
-=item *
+=back
 
-CHECKBOX (CHECKED attribute is optional)
+
+=head2 Other field attributes
+
+Fields must ALWAYS have a TYPE (described in the previous section) and 
+an ID attribute, which is a unique name for 
+the field.  Each type of field may have additional required attributes,
+and may support other optional attributes.
+
+Here is a list of optional attributes for fields:
+
+=over 4
+
+=item VALUE 
+
+A default value to fill in; see below for more information on the format
+of this field.
+
+=item VALIDATION 
+
+a list of validation functions; see L<CGI::FormMagick::Validator> for more
+information on this subject.
+
+=item VALIDATION-ERROR-MESSAGE
+
+an error message to present to the user if validation fails.
+CGI::FormMagick::Validator provides one by default, but you may prefer
+to override it.
+
+=item OPTIONS 
+
+A list of options required for a SELECT list or RADIO buttons; see below for 
+more information on the format of this attribute.
+
+=item CHECKED 
+
+For CHECKBOX fields, used to make the box checked by default.  Defaults
+to 0.
+
+=item MULTIPLE 
+
+For SELECT fields, used to allow the user to select more than one value.
+
+=item SIZE 
+
+For SELECT fields, height; for TEXT and TEXTAREA fields, length.
 
 =back
 
@@ -436,66 +676,107 @@ to develop web applications, you can skip this section entirely.
 
 =cut
 
+=head2 magic_wherenext
+
+We allow FM users to set the C<wherenext> param explicitly in their code,
+to do branching of program logic.  This routine checks to see if they
+have a magic C<wherenext> param and returns it.  Gives undef if it's not
+set.
+
+=begin testing
+
+use CGI;
+
+$cgi = CGI->new({ wherenext => "foo" });
+local $fm->{cgi} = $cgi;
+is($fm->magic_wherenext(), "foo", "Found magic wherenext value");
+
+=end testing
+
+=cut
+
+sub magic_wherenext {
+    my $self = shift;
+    return $self->{cgi}->param("wherenext");
+}
+
+
+=head2 prepare_for_next_page
+
+This does all the things needed before going on to the next page.
+Specifically, it validates the data from this page, and then if
+validation was successful it puts the current page onto the page stack 
+and then sets page_number to whatever page we should be visiting next.
+
+=begin testing
+
+#
+# First we test what happens when the user clicks Next normally.
+#
+
+local $fm->{page_number} = 0;
+local $fm->{page_stack}  = "";
+local $fm->{cgi} = CGI->new({
+    firstname => "Kirrily",    # this should validate successfully.
+    Next      => 1,
+}); 
+
+$fm->prepare_for_next_page();
+is($fm->{page_number}, 1, "Increment the page number when user clicks next");
+is($fm->{page_stack}, 0, "Set page stack when user clicks next");
+
+#
+# Now we're going to see what happens when the user just hits Enter
+#
+
+local $fm->{page_number} = 0;
+local $fm->{page_stack}  = "";
+local $fm->{cgi} = CGI->new({
+    firstname => "Kirrily",
+}); 
+
+$fm->prepare_for_next_page();
+is($fm->{page_number}, 1, "Increment the page number when user presses enter");
+is($fm->{page_stack}, 0, "Set page stack when user presses enter");
+
+#
+# What if there's a magic "wherenext" value set?
+#
+
+local $fm->{page_number} = 0;
+local $fm->{page_stack}  = "";
+local $fm->{cgi} = CGI->new({
+    firstname => "Kirrily",
+    wherenext => "More again",
+});  
+
+$fm->prepare_for_next_page();
+is($fm->{page_number}, 2, "Branch when magic wherenext is set");
+is($fm->{page_stack}, 0, "Set page stack when magic wherenext is set");
+
+=end testing
+
+=cut
+
 
 sub prepare_for_next_page {
     my ($self) = @_;
-    # We ONLY validate when they click Next (well, not Previous, anyway) 
     $self->validate_page($self->{page_number});
 
     unless ($self->errors()) {
         # ONLY do the page post event if the form passes validation
         $self->page_post_event(); 
-
-        # increment page_number if the user clicked "Next" 
-        # or, if the user has explicitly set the "wherenext" param we
-        # figure out what page they meant by passing the name to the
-        # get_page_by_name() routine
  
-        if ($self->{cgi}->param("wherenext") eq "Next" or 
-            ($self->{cgi}->param(".id") and not $self->{cgi}->param("wherenext"))) {
-
-# the latter part of that is to check for if people just hit "enter" on
-# a page with only one field.  A weirdness in the HTML spec and/or 
-# browser implementations thereof means that hitting "enter" on a 
-# single-text-field form will submit the form without any value
-# being passed.  Worse yet, at least one browser is reported to
-# automatically choose the first submit button on the form, in our
-# case "Previous", which is just WRONG but I can't see any way to
-# work around that.
-
-            $self->push_page_stack($self->{page_number});
+        $self->push_page_stack($self->{page_number});
+        if ($self->magic_wherenext()) {
+            $self->{page_number} = 
+                $self->get_page_by_name($self->magic_wherenext());
+        } else {
             $self->{page_number}++;
-        } elsif ($self->{cgi}->param("wherenext") eq "Finish") {
-            # nothing! (see below)
-        } else { 
-            $self->push_page_stack($self->{page_number});
-            $self->{page_number} = $self->get_page_by_name($self->{cgi}->param("wherenext"));
-
-            # TODO: get_page_by_name will now return undef if it can't find the page.
-            # do we need to fix this line above?
         }
     }
-}
-
-sub print_rest_of_page {
-    my ($self) = @_;
-    $self->debug("Printing rest of page");
-    # if we're finished with the form, do form-ending things
-    if ($self->{cgi}->param("wherenext") and $self->{cgi}->param("wherenext") eq "Finish" 
-        and not $self->errors()) {
-        $self->debug("Looks like we're finished, mopping up and doing post_event next");
-	$self->form_post_event();
-    } else { # the default: print this page's fields and stuff
-        $self->debug("Just a normal page, let's get on with it.");
-        $self->print_page_header();
-
-        $self->display_fields();
-
-        $self->print_buttons();
-        $self->print_page_footer();
-    }
-
-    $self->print_form_footer();
+    $self->debug_msg("The page number is now $self->{page_number}");
+    $self->debug_msg("The page stack is now $self->{page_stack}");
 }
 
 =head2 get_option_labels_and_values ($fieldinfo)
@@ -508,6 +789,7 @@ subroutine or whatever else is needed.  Returns a hashref containing:
 =for testing
 TODO: {
     local $TODO = "writeme";
+    local $^W = 0; # Until these tests are happy
     ok($fm->get_option_labels_and_values($f), "get option labels and values");
     ok($fm->get_option_labels_and_values($f), "fail gracefully with empty/no options attribute");
 }
@@ -521,7 +803,10 @@ sub get_option_labels_and_values {
     my @option_labels;		# labels for items in a list
     my @option_values;		# the values hidden behind those labels
 
-    $self->debug("Options attribute appears to be $fieldinfo->{options}");
+    $self->debug_msg(
+        "Options attribute appears to be '"
+        . (defined $fieldinfo->{options} ? $fieldinfo->{options} : '')
+    );
 
     my $options_attribute = $fieldinfo->{'options'} || "";
   
@@ -539,9 +824,9 @@ sub get_option_labels_and_values {
         # labels are the same as values here. this is not a mistake. 
         @option_labels = @$options_ref;
         @option_values = @$options_ref;
-        $self->debug("options ref is an array, with " .  scalar(@$options_ref) . " elements, which are " . join(", ", @$options_ref));
+        $self->debug_msg("options ref is an array, with " .  scalar(@$options_ref) . " elements, which are " . join(", ", @$options_ref));
     } else {
-        $self->debug("Something weird's going on.");
+        $self->debug_msg("Something weird's going on.");
         return undef;
     }
 
@@ -567,124 +852,107 @@ sub parse_options_attribute {
 
     my $options_ref;
 
-    $self->debug("options field looks like $options_field");
+    $self->debug_msg("options field looks like $options_field");
 
     if ($options_field =~ /=>/) {			# user supplied a hash	
-        $self->debug("options_ref should be a hashref");
+        $self->debug_msg("options_ref should be a hashref");
         $options_ref = { eval $options_field };	# make options_ref a hashref
     } elsif ($options_field =~ /,/) {		# user supplied an array
-        $self->debug("options ref should be an arrayref");
+        $self->debug_msg("options ref should be an arrayref");
         $options_ref = [ eval $options_field ];	# make options_ref an arrayref
-        $self->debug("we have " . scalar(@$options_ref) . " elements");
+        $self->debug_msg("we have " . scalar(@$options_ref) . " elements");
     } else {					# user supplied a sub name
-        $self->debug("i think i should call an external routine");
+        $self->debug_msg("i think i should call an external routine");
         $options_field =~ s/\(.*\)$//;		# strip parens
-        $options_ref = call_options_routine($self, $options_field);
+        $options_ref = $self->do_external_routine($options_field);
     }
     return $options_ref;
 }
 
-=pod
+=head2 do_external_routine($self, $routine, @optional_args)
 
-=head2 call_options_routine($self, $options_field)
+Runs an external routine, for whatever purpose (filling in default values
+of fields, validation, etc).  If anything is in @optional_args, the
+routine is called using those.  If @optional_args is ommitted, then
+$self->{cgi} is passed.  Returns the return value of the routine, or
+undef on failure.  Also emits a warning (to your webserver's error log,
+most likely) if it can't run the routine.
 
-given the options field (eg OPTIONS="myroutine") call that routine
-returns a reference to a hash or array with the options list in it
+The routine is always called in the package which called FormMagick
+(usually main::, but possibly something else).
 
-This sets up a reference to the sub that'll fill this SELECT
-box with data. We need to pass this CGI object to it, in case
-for some reason the function wants to use a submitted value
-from the CGI in a database query that populates the SELECT.
-It ends up looking something like \&main::get_select_options(\$self->{cgi}).
+The CGI object is passed to your routine, so you can do stuff like
+$cgi->param("foo") to it to find out CGI parameters and so on.
 
-=cut
+=begin testing
 
-sub call_options_routine {
-    my ($self, $options_field) = @_;
-
-    my $cp = $self->{calling_package};
-    $self->debug("Calling package is $cp, options field is $options_field");
-    my $voodoo = "\&$cp\:\:$options_field(\$self->{cgi})"; 
-
-    my $options_ref;
-
-    unless ($options_ref = eval $voodoo) {
-        # it seems like the right thing to do if there is no value list
-        # returned is to barf out a warning and leave the list blank.
-        debug ($self, "Couldn't obtain a value list from $voodoo for field");
-        my $options_ref = "";
-    }
-    return $options_ref;
+sub one  {
+    return 1;
 }
 
-=pod
-
-=head2 call_defaultvalue_routine($self, $default_field)
-
-Given the default value field (eg "myroutine" in VALUE="myroutine"), 
-call that routine.  Returns a scalar with the default value for a field. 
-
-XXX: this is largely the same as call_options_routine. We might
-want to put those 2 functions together in the future. 
-
-=cut
-
-sub call_defaultvalue_routine{
-    my ($self, $default_field) = @_;
-
-    $default_field =~ s/\(.*\)$//;	# strip parens, if there are any
-  
-    # we got here through N layers of call stack, so walk up the stack
-    # N times. The 0th element of caller() is the package that's using
-    # FormMagick.pm, eg "My::App". 
-  
-    # walk up the call stack until we find something that's not 
-    # CGI::FormMagick. That's what we're looking for. 
-
-    my $callstack_level = 0;
-    while (caller($callstack_level) eq "CGI::FormMagick") {
-        $callstack_level++;
-    }
-  
-    my $calling_package = (caller($callstack_level))[0] || "";
-
-    # This sets up a reference to the user-defined sub that returns
-    # a default value for a field. 
-    # It ends up looking something like \&main::get_value(\$self->{cgi}).
-    # --srl
-    my $voodoo = "\&$calling_package\:\:$default_field(\$self->{cgi})"; 
-
-    my $default_value;
-
-    unless ($default_value = eval $voodoo) {
-    # if the function doesn't exist, assume we want to use the raw string.
-        debug ($self, "Couldn't obtain a value from $voodoo for field");
-        my $default_value = $default_field;
-    }
-    return $default_value;
+sub zero {
+    return 0;
 }
 
-=pod
+sub add_1 {
+    my $sum = 1;
+    $sum += $_ foreach @_;
+    return $sum;
+};
 
-=head2 do_external_routine($self, $routine)
+foreach my $expectations (
+    { expected => 1,     call_this => 'one' },
+    { expected => 0,     call_this => 'zero' },
+    { expected => 1,     call_this => 'add_1', with_args => [ 0 ] },
+    { expected => 2,     call_this => 'add_1', with_args => [ 1 ] },
+    { expected => 6,     call_this => 'add_1', with_args => [ 2, 3 ] },
+
+    # Error cases:
+    { expected => undef, call_this => undef }, 
+    { expected => undef, call_this => 'no_such_sub' }, 
+    { expected => undef, call_this => 'not even possible' }, 
+) {
+    my $expected = $expectations->{expected};
+    my $call_this = $expectations->{call_this};
+    my @args =
+        exists $expectations->{with_args}
+            ? @{$expectations->{with_args}}
+            : undef;
+
+    my $actual;
+    {
+        local $^W = 0; # Because we feed this bad input on purpose.
+        $actual = $fm->do_external_routine($call_this, @args);
+    }
+
+    my $arg_string;
+    if (!defined $args[0]) {
+        $arg_string = 'undef';
+    } else {
+        $arg_string = "'" . join("', '", @args) .  "'";
+    }
+    my $description = "do_external_routine($arg_string)";
+
+    is($actual, $expected, $description);
+}
+
+=end testing
 
 =cut
 
 sub do_external_routine {
-    my $self = shift;	
+    my $self = shift;
     my $routine = shift || "";
-    
-    my $cp = $self->{calling_package};
-    my $voodoo = "\&$cp\:\:$routine(\$self->{cgi})"; 
-    
-    debug($self, "Voodoo is $voodoo");
-    
-    if (eval $voodoo) {
-    	return 1;
-    } else {
-    	debug($self, "There was no routine defined.");
-    	return 0;
-    }
+    my @args = @_;
+    scalar @args or push @args, $self->{cgi};
+
+    $routine =~ s/\(.*\)$//; # strip parens, if there are any
+
+    CGI::FormMagick::Sub::call(
+        package => $self->{calling_package},
+        sub => $routine,
+        args => \@args
+    );
 }
 
 =pod

@@ -1,5 +1,20 @@
 Revision history for Perl extension FormMagick.
 
+0.50
+----
+
+Various code cleanups.
+
+Added experimental file upload support.
+
+Changed email() validation routine to email_simple()
+
+OO interface to previousbutton() and friends
+
+More taint-friendly
+
+Starting to deprecate Locale::Maketext in favour of XML-based lexicons
+
 0.49
 ----
 

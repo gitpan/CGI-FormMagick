@@ -5,7 +5,7 @@
 # the file COPYING for details.
 
 #
-# $Id: Events.pm,v 1.1 2001/09/24 20:10:47 skud Exp $
+# $Id: Events.pm,v 1.7 2002/01/22 21:13:15 skud Exp $
 #
 
 package    CGI::FormMagick;
@@ -23,10 +23,9 @@ CGI::FormMagick::Events -- pre/post form/page event handlers
 
   use CGI::FormMagick;
 
-
 =head1 DESCRIPTION
 
-=head2 form_pre_event($self)
+=head2 $fm->form_pre_event()
 
 performs the PRE-EVENT (if any) for the form.  Usually used to do
 setup for the application.
@@ -35,13 +34,19 @@ this is the routine where we call some routine that will
 give us default data for the form, or otherwise
 do things that need doing before the form is submitted.
 
+=for testing
+TODO: {
+    local $TODO = "Write tests for Event.pm!";
+    ok(0, "nothing here yet");
+}
+
 =cut
 
 sub form_pre_event {
     my ($self) = @_;
 
     # find out what the form pre_event action is. 
-    my $pre_form_routine = $self->{clean_xml}->{'PRE-EVENT'} || return;
+    my $pre_form_routine = $self->{xml}->{'PRE-EVENT'} || return;
 
     if ($pre_form_routine) {
         my $cp = $self->{calling_package};
@@ -53,14 +58,14 @@ sub form_pre_event {
         # variables that were submitted.
 
         unless (eval $voodoo) {
-            debug($self, "<p>There was no pre-form routine.</p>\n")
+            $self->debug_msg("<p>There was no pre-form routine.</p>\n")
         }
     }
 }
 
 =pod
 
-=head2 form_post_event($self)
+=head2 $fm->form_post_event()
 
 performs validation and runs the POST-EVENT (if any) otherwise just
 prints out the data that the user input
@@ -73,67 +78,68 @@ CONSIDERATIONS" in the perldoc for how to get around this :-/
 
 sub form_post_event {
     my ($self) = @_;
-
-    $self->debug("This is the form post event");
-    
-    $self->validate_all();
-
-    $self->debug("finished validating for form post event");
-
+    $self->debug_msg("This is the form post event");
     if ($self->errors()) {
-
-        $self->debug("Looks like we've got some errors");
-      #print "<h2>", localise("Validation errors"), "</h2>\n";
-      #print "<p>", localise("These validation errors are probably evidence of an attempt to circumvent the data validation on this application.  Please start over again."), "</p>";
-      $self->list_error_messages();
+        $self->debug_msg("Looks like we've got some errors");
+        #print "<h2>", localise("Validation errors"), "</h2>\n";
+        #print "<p>", localise("These validation errors are probably evidence of an attempt to circumvent the data validation on this application.  Please start over again."), "</p>";
+        $self->list_error_messages();
     } else {
-      $self->debug("Validation successful.");
+        $self->debug_msg("Validation successful.");
 
-      # find out what the form post_event action is. 
-      my $post_form_routine = $self->{clean_xml}->{'POST-EVENT'};
+        # find out what the form post_event action is. 
+        my $post_form_routine = $self->{xml}->{'POST-EVENT'};
 
-      unless ($self->do_external_routine($post_form_routine)) {
+        unless ($self->do_external_routine($post_form_routine)) {
   
-        print "<p>", localise("The following data was submitted"), "</p>\n";
+            print "<p>", localise("The following data was submitted"), "</p>\n";
   
-        print "<ul>\n";
-        my @params = $self->{cgi}->param;
-        foreach my $param (@params) {
-          my $value =  $self->{cgi}->param($param);
-          print "<li>$param: $value\n";
+            print "<ul>\n";
+            my @params = $self->{cgi}->param;
+            foreach my $param (@params) {
+                my $value =  $self->{cgi}->param($param);
+                print "<li>$param: $value\n";
+            }
+            print "</ul>\n";
         }
-        print "</ul>\n";
-      }
     }
 }
 
 =pod
 
-=head2 page_pre_event($self)
+=head2 $fm->page_pre_event()
+
+Performs the PAGE PRE-EVENT (if any).
+
+XXX NEEDS TESTS
 
 =cut
 
 
 sub page_pre_event {
     my ($self) = @_;
-    $self->debug("This is the page pre-event.");
+    $self->debug_msg("This is the page pre-event.");
     if (my $pre_page_routine = $self->page->{'PRE-EVENT'}) {
-      $self->debug("The pre-routine is $pre_page_routine");
-      $self->do_external_routine($pre_page_routine);
+        $self->debug_msg("The pre-routine is $pre_page_routine");
+        $self->do_external_routine($pre_page_routine);
     }
 }
 
 =pod
 
-=head2 page_post_event($self)
+=head2 $fm->page_post_event()
+
+Performs the PAGE POST-EVENT (if any).
+
+XXX NEEDS TESTS
 
 =cut
 
 sub page_post_event {
     my ($self) = @_;
-    $self->debug("This is the page post-event.");
+    $self->debug_msg("This is the page post-event.");
     if (my $post_page_routine = $self->page->{'POST-EVENT'}) {
-      $self->debug("The post-routine is $post_page_routine");
+      $self->debug_msg("The post-routine is $post_page_routine");
       $self->do_external_routine($post_page_routine);
     }
 }

@@ -52,5 +52,20 @@ description.  All the other field-related information is in attributes.
 <!-- A fragment is an empty element with just one attribute: its source.
 -->
 
-<!ELEMENT FRAGMENT (EMPTY)>
-<!ATTLIST FRAGMENT SOURCE 	CDATA	#REQUIRED	>
+<!ELEMENT FRAGMENT (#CDATA)>
+<!ATTLIST FRAGMENT TYPE         CDATA	#IMPLIED        >
+<!ATTLIST FRAGMENT SOURCE 	CDATA	#IMPLIED        >
+
+
+<!-- Lexicon stuff.  LEXICON is a top-level element with a required LANG
+attribute, which contains one or more LEXENTRYs, each of which contain a
+BASE and a TRANSlation. -->
+
+<!ELEMENT LEXICON (ENTRY+)>
+<!ATTLIST LEXICON LANG          CDATA   #REQUIRED       >
+
+<!ELEMENT LEXENTRY (BASE,TRANS)>
+
+<!ELEMENT BASE  (#CDATA)>
+<!ELEMENT TRANS (#CDATA)>
+

@@ -11,7 +11,7 @@
 #
 
 #
-# $Id: HTML.pm,v 1.15 2001/09/24 02:03:17 skud Exp $
+# $Id: HTML.pm,v 1.34 2002/01/22 21:13:15 skud Exp $
 #
 
 package    CGI::FormMagick;
@@ -28,20 +28,22 @@ CGI::FormMagick::HTML - HTML output routines for FormMagick
 
 =begin testing
 BEGIN: {
+        use strict;
         use_ok('CGI::FormMagick');
-        use vars qw($fm $i);
+        use vars qw($fm);
         use lib "lib/";
 }
 
-my $xml = qq(
-  <FORM TITLE="FormMagick demo application" POST-EVENT="submit_order">
-  <PAGE NAME="Personal" TITLE="Personal details" POST-EVENT="lookup_group_info">
-  <FIELD ID="firstname" LABEL="first name" TYPE="TEXT" VALIDATION="nonblank"/>
-  </PAGE>
-  </FORM>
-);
+$fm = new CGI::FormMagick(TYPE => 'FILE', SOURCE => "t/simple.xml");
+$fm->{cgi} = new CGI("");
+isa_ok($fm, 'CGI::FormMagick');
 
-$fm = new CGI::FormMagick(TYPE => 'STRING', SOURCE => $xml);
+our $minimalist_fieldinfo_ref = {
+    VALIDATION => 'foo',
+    LABEL => 'bar',
+    TYPE => 'TEXT',
+    ID => 'baz'
+};
 
 =end testing
 
@@ -52,6 +54,23 @@ probably only of interest to developers of FormMagick.
 
 =head1 DEVELOPER ROUTINES 
 
+=head2 $self->print_page()
+
+Prints out a page of the form, including the page header and footer, the 
+fields, and the buttons.
+
+=cut
+
+sub print_page {
+    my ($self) = @_;
+    $self->print_page_header();
+    $self->display_fields();
+    $self->print_buttons();
+    $self->print_page_footer();
+}
+
+
+
 =head2 print_buttons($fm)
 
 print the table row containing the form's buttons
@@ -59,29 +78,28 @@ print the table row containing the form's buttons
 =cut
 
 sub print_buttons {
-  my $fm = shift;
-  print qq(<tr><td></td><td class="buttons">);
-  print qq(<input type="hidden" name="wherenext" value="Previous">) 
-  	unless $fm->{page_number} == 1 or $fm->{previousbutton} == 0;
-  my $label = $fm->localise("Previous");
-  print qq(<input type="submit" name="wherenextb" value="$label">) 
-  	unless $fm->{page_number} == 1 or $fm->{previousbutton} == 0;
+    my $fm = shift;
+    print "\n";
+    print qq(<tr><td></td><td class="buttons">);
+    my $label = $fm->localise("Previous");
+    print qq(<input type="submit" name="Previous" value="$label">) 
+  	unless $fm->{page_number} == FIRST_PAGENUM() 
+        or $fm->{previousbutton} == 0;
 
-  # check whether it's the last page yet
-  if (scalar(@{$fm->{xml}[1]} + 1)/4 == $fm->{page_number}+1) {
-    $label = $fm->localise("Finish");
-    print qq(<input type="hidden" name="wherenext" value="Finish">\n);
-    print qq(<input type="submit" name="wherenextb" value="$label">\n);
-  } else {
-    $label = $fm->localise("Next");
-    print qq(<input type="hidden" name="wherenext" value="Next">\n);
-    print qq(<input type="submit" name="wherenextb" value="$label">\n);
-  }
-  $label = $fm->localise("Clear this form");
-  print qq(<input type="reset" value="$label">) 
+    # check whether it's the last page yet
+    if ($fm->is_last_page()) {
+        $label = $fm->localise("Finish");
+        print qq(<input type="submit" name="Finish" value="$label">\n);
+    } else {
+        $label = $fm->localise("Next");
+        print qq(<input type="submit" name="Next" value="$label">\n);
+    }
+    $label = $fm->localise("Clear this form");
+    print qq(<input type="reset" value="$label">) 
   	if $fm->{resetbutton};
-  print qq(</tr>);
+    print qq(</tr>);
 }
+
 
 =pod
 
@@ -92,14 +110,14 @@ prints the header template and the form title (heading level 1)
 =cut 
 
 sub print_form_header {
-  my $fm = shift;
-  my $title = $fm->{xml}[1][0]->{TITLE};
+    my $fm = shift;
+    my $title = $fm->form->{TITLE};
 
-  # print out the templated headers (based on what's specified in the
-  # HTML) then an h1 containing the FORM element's TITLE attribute
+    # print out the templated headers (based on what's specified in the
+    # HTML) then an h1 containing the FORM element's TITLE attribute
    
-  print $fm->parse_template($fm->{xml}[1][0]->{HEADER});
-  print "<h1>", $fm->localise($title), "</h1>\n";
+    print $fm->parse_template($fm->form->{HEADER});
+    print "<h1>", $fm->localise($title), "</h1>\n";
 }
 
 =pod
@@ -111,19 +129,19 @@ prints the stuff that goes at the bottom of every page of the form
 =cut
 
 sub print_form_footer {
-  my $fm = shift;
-
-  my $url = $fm->{cgi}->url();
+    my $fm = shift;
   
-  # here's how we clear our state IDs
-  print qq(<p><a href="$url">Start over again</a></p>) 
+    my $url = $fm->{cgi}->url();
+  
+    # here's how we clear our state IDs
+    print qq(<p><a href="$url">Start over again</a></p>) 
   	if $fm->{startoverlink};
 
-  # this is for debugging purposes
-  $fm->debug(qq(<a href="$url?checkl10n=1">Check L10N</a>));
+    # this is for debugging purposes
+    $fm->debug_msg(qq(<a href="$url?checkl10n=1">Check L10N</a>));
 
-  # print the footer template
-  print $fm->parse_template($fm->{xml}[1][0]->{FOOTER});
+    # print the footer template
+    print $fm->parse_template($fm->form->{FOOTER});
 }
 
 
@@ -137,25 +155,26 @@ prints the page title (heading level 2) and description
 
 sub print_page_header {
 
-  my $fm = shift;
-  my $title       = $fm->page->{TITLE};
-  my $description = $fm->page->{DESCRIPTION};
+    my $fm = shift;
+    my $title       = $fm->page->{TITLE};
+    my $description = $fm->page->{DESCRIPTION};
 
-  # the level 2 heading is the PAGE element's TITLE heading
-  print "<h2>", $fm->localise($title), "</h2>\n";
+    # the level 2 heading is the PAGE element's TITLE heading
+    print "<h2>", $fm->localise($title), "</h2>\n";
 
-  if ($description) {
+    if ($description) {
 	  print '<p class="pagedescription">', $fm->localise($description), "</p>\n";
-  }
+    }
 
-  my $url = $fm->{cgi}->url();
-  print qq(<form method="POST" action="$url">\n);
+    my $url = $fm->{cgi}->url();
+    my $enctype = $fm->get_page_enctype();
+    print qq(<form method="POST" action="$url" enctype="$enctype">\n);
 
-  print qq(<input type="hidden" name="page" value="$fm->{page_number}">\n);
-  print qq(<input type="hidden" name="page_stack" value="$fm->{page_stack}">\n);
-  print $fm->{cgi}->state_field(), "\n";	# hidden field with state ID
+    print qq(<input type="hidden" name="page" value="$fm->{page_number}">\n);
+    print qq(<input type="hidden" name="page_stack" value="$fm->{page_stack}">\n);
+    print $fm->{cgi}->state_field(), "\n";	# hidden field with state ID
 
-  print "<table>\n";
+    print "<table>\n";
   
 }
 
@@ -169,10 +188,10 @@ form and table close tags and stuff.
 =cut
 
 sub print_page_footer {
-  my $fm = shift;
+    my $fm = shift;
   
-  print $fm->{cgi}->state_field();
-  print "</table>\n</form>\n";
+    print $fm->{cgi}->state_field();
+    print "</table>\n</form>\n";
 }
 
 =pod 
@@ -184,10 +203,10 @@ prints the description of a field
 =cut
 
 sub print_field_description {
-	my $fm = shift;
-	my $d = shift;
-	$d = $fm->localise($d);
-	print qq(<tr><td class="fielddescription" colspan=2>$d</td></tr>);
+    my $fm = shift;
+    my $d = shift;
+    $d = $fm->localise($d);
+    print qq(<tr><td class="fielddescription" colspan=2>$d</td></tr>);
 }
 
 
@@ -214,29 +233,29 @@ displays the fields for a page by looping through them
 =cut 
 
 sub display_fields {
-  my ($fm) = @_;
+    my ($fm) = @_;
 
-  my @definitions;
+    my @definitions;
 
-  foreach my $field ( @{$fm->page->{FIELDS}} ) {
+    foreach my $field ( @{$fm->page->{FIELDS}} ) {
 
-    my $info = $fm->gather_field_info($field);
-    $fm->print_field_description($info->{description}) if $info->{description};
+        my $info = $fm->gather_field_info($field);
+        $fm->print_field_description($info->{description}) if $info->{description};
     
-    if (($info->{type} eq "SELECT") || ($info->{type} eq "RADIO")) {
-      $fm->set_option_lv($info);
-    }
+        if (($info->{type} eq "SELECT") || ($info->{type} eq "RADIO")) {
+            $fm->set_option_lv($info);
+        }
 
-    print qq(<tr><td class="label">) . $fm->localise($info->{label}) ;
+        print qq(<tr><td class="label">) . $fm->localise($info->{label}) ;
     
-    # display errors (if any) below the field label.
-    my $error = $fm->{errors}->{$info->{label}};
-    $fm->print_field_error($error) if $error;
+        # display errors (if any) below the field label.
+        my $error = $fm->{errors}->{$info->{label}};
+        $fm->print_field_error($error) if $error;
 		
-    my $inputfield = $fm->build_inputfield($info);
-    print  qq(</td> <td class="field">$inputfield</td></tr>);
+        my $inputfield = $fm->build_inputfield($info);
+        print  qq(</td> <td class="field">$inputfield</td></tr>);
 
-  }
+    }
 }
 
 =pod
@@ -246,17 +265,45 @@ sub display_fields {
 Gathers various information about a field and returns it as a hashref.
 
 =begin testing
-my $f = {			# minimalist fieldinfo hashref
-	VALIDATION => 'foo',
-	LABEL => 'bar',
-	TYPE => 'TEXT',
-	ID => 'baz'
-};
 
-$fm->{cgi} = CGI::new->("");
+sub plain_sub {
+    return 'Vanilla';
+}
 
-ok(($i = $fm->gather_field_info($f)), "Gather field info");
-ok(ref($i) eq 'HASH', "gather_field_info returning a hashref");
+sub add_1 {
+    return $_[0] + 1;
+}
+
+sub add_together {
+    my $sum = 0;
+    $sum += $_ foreach @_;
+    return $sum;
+}
+
+{
+    foreach my $expectations (
+        [ '', '' ],
+        [ 'plain', 'plain' ],
+        [ 'plain_sub()', 'Vanilla' ],
+        [ 'add_1(0)', '1' ],
+        [ 'add_1(1)', '2' ],
+        [ 'add_together(2, 3)', '5' ],
+        [ 'add_together(2, 3, 4)', '9' ],
+    ) {
+        my ($input, $expected) = @$expectations;
+
+        my %f = %$minimalist_fieldinfo_ref;
+        $f{VALUE} = $input;
+
+        my $i = $fm->gather_field_info(\%f);
+        my $actual = $i->{value};
+        is(
+            $actual,
+            $expected,
+            "gather_field_info('$input')"
+        );
+    }
+}
 
 =end testing 
 
@@ -274,18 +321,22 @@ sub gather_field_info {
     # value defaults to what the user filled in, if they filled
     # something in on a previous visit to this field
     if ($fm->{cgi}->param($f{id})) {
-      $f{value} = $fm->{cgi}->param($f{id});
+        $f{value} = $fm->{cgi}->param($f{id});
 
     # are we calling a subroutine to find the value?
-    } elsif ($fieldinfo->{VALUE} && $fieldinfo->{VALUE} =~ /()$/) {
-      $f{value} = $fm->call_defaultvalue_routine($fieldinfo->{VALUE}); 
+    } elsif ($fieldinfo->{VALUE} && $fieldinfo->{VALUE} =~ /\((.*)\)$/) {
+        my @args = ();
+        if (defined $1) {
+            @args = split /,\s*/, $1;
+        }
+        $f{value} = $fm->do_external_routine($fieldinfo->{VALUE}, @args); 
 
     # otherwise, use VALUE attribute or default to blank.
     } else {
-      $f{value} = $fieldinfo->{VALUE} || "";
+        $f{value} = $fieldinfo->{VALUE} || "";
     }
 
-    $fm->debug("Field name is $f{id}");
+    $fm->debug_msg("Field name is $f{id}");
     return \%f;
 } 
 
@@ -297,81 +348,89 @@ Builds HTML for individual form fields. $forminfo is a hashref
 containing information about the field. 
 
 =for testing
+my $i = $fm->gather_field_info($minimalist_fieldinfo_ref);
 ok(my $if = $fm->build_inputfield($i, CGI::FormMagick::TagMaker->new()), "build input field");
 
 =cut
 
 sub build_inputfield {
-  my ($fm, $info) = @_;
+    my ($fm, $info) = @_;
   
-  my $inputfield;		# HTML for a form input
-  my $tagmaker = new CGI::FormMagick::TagMaker->new();
+    my $inputfield;		# HTML for a form input
+    my $tagmaker = new CGI::FormMagick::TagMaker->new();
 
-  if ($info->{type} eq "SELECT") {
+    if ($info->{type} eq "SELECT") {
 
-    # don't specify a size if a size wasn't given in the XML
-    if ($info->{size} && $info->{size} ne "") { 
-      $inputfield = $tagmaker->select_start( 
-        type     => $info->{type}, 
-        name     => $info->{id},
-        multiple => $info->{multiple},
-        size     => $info->{size} 
-      )
+        # don't specify a size if a size wasn't given in the XML
+        if ($info->{size} && $info->{size} ne "") { 
+            $inputfield = $tagmaker->select_start( 
+                type     => $info->{type}, 
+                name     => $info->{id},
+                multiple => $info->{multiple},
+                size     => $info->{size} 
+            )
+        } else {
+            $inputfield = $tagmaker->select_start( 
+                type     => $info->{type}, 
+                name     => $info->{id},
+                multiple => $info->{multiple},
+            )
+        }	
+
+        $inputfield = $inputfield . $tagmaker->option_group( 
+            value => $info->{option_values}, 
+            text  => $info->{option_labels},
+        ) .  $tagmaker->select_end;
+
+    # nasty hack required here to select the desired value if it's preset
+        $inputfield =~ s/(<OPTION VALUE="$info->{value}")/$1 SELECTED/;
+
+    } elsif ($info->{type} eq "RADIO") {
+        $inputfield = $tagmaker->input_group(
+            type  => $info->{type},
+            name  => $info->{id},
+            value => $info->{option_values},
+            text  => $info->{option_labels} 
+        );
+    # nasty hack required here to select the desired value if it's preset
+        $inputfield =~ s/(VALUE="$info->{value}")/$1 CHECKED/;
+
+    } elsif ($info->{type} eq "CHECKBOX") {
+        $inputfield = $tagmaker->input(
+            type    => $info->{type},
+            name    => $info->{id},
+            value   => $info->{value},
+            checked => $info->{checked},
+            text    => $info->{label}
+        );
+
     } else {
-      $inputfield = $tagmaker->select_start( 
-        type     => $info->{type}, 
-        name     => $info->{id},
-        multiple => $info->{multiple},
-      )
-    }	
-
-    $inputfield = $inputfield . $tagmaker->option_group( 
-      value => $info->{option_values}, 
-      text  => $info->{option_labels},
-    ) .  $tagmaker->select_end;
-
-  } elsif ($info->{type} eq "RADIO") {
-    $inputfield = $tagmaker->input_group(
-    type  => $info->{type},
-    name  => $info->{id},
-    value => $info->{option_values},
-    text  => $info->{option_labels} 
-    );
-
-  } elsif ($info->{type} eq "CHECKBOX") {
-    $inputfield = $tagmaker->input(
-      type    => $info->{type},
-      name    => $info->{id},
-      value   => $info->{value},
-      checked => $info->{checked},
-      text    => $info->{label}
-    );
-
-  } else {
-    # map HTML::TagMaker's functions to the type of this field.
-    my %translation_table = (
-      TEXTAREA => 'textarea',
-      CHECKBOX => 'input_field',
-      TEXT     => 'input_field',
-    );
-    my $function_name = $translation_table{$info->{type}};
-    # make sure no size gets specified if the size isn't given in the XML
-    if ($info->{size} && $info->{size} ne "") {
-      $inputfield = $tagmaker->$function_name(
-        type  => $info->{type},
-        name  => $info->{id},
-        value => $info->{value},
-        size  => $info->{size},
-      );
-    } else {
-      $inputfield = $tagmaker->$function_name(
-        type  => $info->{type},
-        name  => $info->{id},
-        value => $info->{value},
-      );
+        # map HTML::TagMaker's functions to the type of this field.
+        my %translation_table = (
+            TEXTAREA => 'textarea',
+            CHECKBOX => 'input_field',
+            TEXT     => 'input_field',
+            PASSWORD => 'input_field',
+	    FILE     => 'input_field',
+        );
+        my $function_name = $translation_table{$info->{type}};
+        # make sure no size gets specified if the size isn't given in the XML
+        if ($info->{size} && $info->{size} ne "") {
+            $inputfield = $tagmaker->$function_name(
+                type  => $info->{type},
+                name  => $info->{id},
+                value => $info->{value},
+                size  => $info->{size},
+            );
+        } else {
+            $inputfield = $tagmaker->$function_name(
+                type  => $info->{type},
+                name  => $info->{id},
+                value => $info->{value},
+            );
+        }
     }
-  }
-  return $inputfield;
+    return $inputfield;
 }
 
 =pod
@@ -380,7 +439,7 @@ sub build_inputfield {
 
 Given $info (a hashref with info about a field) figures out the option
 values/labels for SELECT or RADIO fields and shoves them into
-$info->{option values} and $info->{option_labels}
+$info->{option_values} and $info->{option_labels}
 
 =cut
 

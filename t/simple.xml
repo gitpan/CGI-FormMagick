@@ -1,0 +1,24 @@
+  <FORM TITLE="FormMagick demo application" POST-EVENT="submit_order">
+  <PAGE NAME="Personal">
+    <TITLE>Personal details</TITLE>
+    <FIELD ID="firstname" TYPE="TEXT" VALIDATION="nonblank">
+      <LABEL>first name</LABEL>
+      <DESCRIPTION>description here</DESCRIPTION>
+    </FIELD>
+  </PAGE>
+  <PAGE NAME="More">
+    <TITLE>More details</TITLE>
+    <FIELD ID="lastname" TYPE="TEXT" VALIDATION="nonblank">
+      <LABEL>last name</LABEL>
+    </FIELD>
+  </PAGE>
+  <PAGE NAME="More again">
+    <TITLE>Yet more details</TITLE>
+    <FIELD ID="long" TYPE="TEXT" VALIDATION="minlength(5)">
+      <LABEL>long string</LABEL>
+    </FIELD>
+    <FIELD ID="short" TYPE="TEXT" VALIDATION="maxlength(5)">
+      <LABEL>short string</LABEL>
+    </FIELD>
+  </PAGE>
+  </FORM>
