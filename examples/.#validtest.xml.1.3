@@ -1,0 +1,18 @@
+  <FORM TITLE="FormMagick validation test" HEADER="testfm_header.tmpl" 
+    FOOTER="testfm_footer.tmpl" PRE-EVENT="setup_form" POST-EVENT="submit_form">
+    <PAGE NAME="page 1" TITLE="test 1" TEMPLATE="myform_page.tmpl" 
+      POST-EVENT="lookup_group_info">
+      <FIELD ID="firstname" LABEL="Your first name" TYPE="TEXT" 
+        VALIDATION="nonblank" VALUE="test()"/>
+      <FIELD ID="lastname" LABEL="Your surname" TYPE="TEXT" 
+        VALIDATION="nonblank" SIZE="50"/>
+    </PAGE>
+    <PAGE NAME="Page 2" TITLE="Page 2">
+      <FIELD ID="favorite_number" LABEL="Your favorite number" TYPE="TEXT"
+       VALIDATION="number"/>
+	  <FIELD ID="colors" LABEL="colors you like" TYPE="SELECT" 
+	   OPTIONS="colors()" MULTIPLE="YES" SIZE="4"/>
+    </PAGE>
+  </FORM>
+
+

@@ -1,5 +1,35 @@
 Revision history for Perl extension FormMagick.
 
+0.4.0
+-----
+Error messages now appear near the fields to which they apply, and can
+be prettified using the "error" class in a cascading style sheet.
+
+A new parameter to the new() method, SESSIONDIR, allows the user to
+specify where they want their session-handling tokens to be put.
+
+The parameters PREVIOUSBUTTON, RESETBUTTON and STARTOVERLINK, when given
+to new(), allow you to switch off these buttons/links.  They default to
+being on.
+
+New validation routines now working:
+	password()
+	credit_card_number()
+	credit_card_expiry()
+
+Validation module no longer requires Business::CreditCard
+
+Major reworking and bug-fixing of the flow between pages when clicking
+Next/Previous/etc, including passing round a stack of all previous pages
+visited.
+
+Fixes to validation, including stuff that allows you to validate stuff
+by hand if you want.
+
+SELECT MULTIPLE is now supported.
+
+SIZE is now supported for TEXT and SELECT form elements.
+
 0.3.1
 -----
 Added stub L10N perl modules for every language in iso639.  This means

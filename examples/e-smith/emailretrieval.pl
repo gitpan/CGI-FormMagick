@@ -13,7 +13,11 @@ my $data = <DATA>;
 my $fm = new CGI::FormMagick(
         TYPE => "STRING",
 	SOURCE => "$data",
-	#DEBUG => 1
+	SESSIONDIR => "/home/skud/infotrope/tmp/examples/e-smith/wibble",
+	DEBUG => 0,
+	PREVIOUSBUTTON => 0,
+	RESETBUTTON => 0,
+	STARTOVERLINK => 0,
 );
 
 #
@@ -46,7 +50,6 @@ foreach my $l (@langs) {
 #
 
 $fm->display();
-
 
 # list of mailcheck frequencies
 
@@ -107,7 +110,8 @@ sub update_email_settings {
 	include:
 	</p>
 	);
-	foreach my $f ( qw(retrieval_mode delegate_server) ) {
+	foreach my $f ( qw(retrieval_mode delegate_server
+	weekend_frequency multi_drop_sort_header ) ) {
 		print "<p><b>$f: </b>", $cgi->param($f), "</p>";
 	}
 	return 1;
@@ -122,7 +126,7 @@ sub lexicon_fr {
 	};
 }
 
-__DATA__
+__END__
 <FORM TITLE="e-smith demo application" HEADER="head.tmpl" 
   FOOTER="foot.tmpl" POST-EVENT="update_email_settings">
   <PAGE NAME="Retrieval" TITLE="Change email retrieval settings" 

@@ -19,7 +19,6 @@ WriteMakefile(
 				# Locale::Country => 1.02,
 	# the following are nasty modules that aren't nicely CPANable
 				# CGI::Persistent => 0.21
-				# Business::CreditCard => 0.21,
 			},
     ($] >= 5.005 ?    ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM => 'lib/CGI/FormMagick.pm', # retrieve abstract from module

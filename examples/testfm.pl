@@ -8,14 +8,8 @@ use strict;
 use CGI::FormMagick;
 use Data::Dumper;
 
-#my $xmlfilename = $ARGV[0] || "./testfm.xml";
-
 my $fm = new CGI::FormMagick(
-<<<<<<< testfm.pl
-=======
-	TYPE => "file", 
->>>>>>> 1.8
-	DEBUG => 1,
+	DEBUG => 1
 );
 
 $fm->display();

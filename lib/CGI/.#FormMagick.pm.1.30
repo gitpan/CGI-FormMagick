@@ -11,7 +11,7 @@
 #
 
 #
-# $Id: FormMagick.pm,v 1.35 2001/03/13 22:26:59 skud Exp $
+# $Id: FormMagick.pm,v 1.30 2001/03/13 20:21:37 skud Exp $
 #
 
 package    CGI::FormMagick;
@@ -511,19 +511,11 @@ sub display_fields {
     my $type = $fieldinfo->{TYPE};
     my $fieldname = $fieldinfo->{ID};
     my $option_function = $fieldinfo->{OPTIONS};
-    my $value;
-    if ($cgi->param("$fieldname")) {
-      $value = $cgi->param("$fieldname");
-    } elsif ($fieldinfo->{VALUE} =~ /()$/) {
-      $value = call_defaultvalue_routine($self, $cgi, $fieldinfo->{VALUE}); 
-    } else {
-      $value = $fieldinfo->{VALUE} || "";
-    }
-
+    my $value = $fieldinfo->{VALUE};
     my $description = $fieldinfo->{DESCRIPTION};
-    my $checked = $fieldinfo->{CHECKED};
-    my $multiple = $fieldinfo->{MULTIPLE};
-    my $size = $fieldinfo->{SIZE};
+	my $checked = $fieldinfo->{CHECKED};
+	my $multiple = $fieldinfo->{MULTIPLE};
+	my $size = $fieldinfo->{SIZE};
 
     $self->print_field_description($description) if $description;
     
@@ -578,7 +570,7 @@ sub display_fields {
 
 sub print_form_header {
   my $self = shift;
-  my $title = $self->{xml}[1][0]->{TITLE};
+  my $title = $self->{sml}[1][0]->{TITLE};
 
   # print out the templated headers (based on what's specified in the
   # HTML) then an h1 containing the FORM element's TITLE attribute
@@ -912,8 +904,6 @@ POST-EVENT or PRE-EVENT routine.  The following methods are used
 internally by FormMagick for its validation, but may also be useful to
 developers.
 
-Note: this stuff may be buggy.  Please let us know how you go with it.
-
 =head2 $fm->validate_field($cgi, $fieldname | $fieldref)
 
 This routine allows you to validate a specific field by hand if you need
@@ -934,7 +924,6 @@ FormMagick uses references to a field object, internally:
 you shouldn't need to do that)
 
 =cut
-
 
 #----------------------------------------------------------------------------
 # validate_field($self, $cgi, $fieldname | $fieldref)
@@ -959,17 +948,23 @@ sub validate_field {
   return "OK" unless $validation;
 
   my @results;
+
   # XXX argh! this split statement requires that we write validators like 
   # "lengthrange(4, 10), word" like "lengthrange(4,10), word" in order to 
   # work. Eeek. That's not how this should work. But it was even
   # more broken before (I changed a * to a +). 
   # OTOH, I'm not sure it's fixed now. --srl
+  # XXX: is this fixed now?
+  # XXX: no it's not, that's why it still says XXX
 
   my @validation_routines = split( /,\s+/, $validation);
+
   # $self->debug("Going to perform these validation routines: @validation_routines");
 
   foreach my $v (@validation_routines) {
+
     my ($validator, $arg) = parse_validation_routine($v);
+
     my $result = $self->do_validation_routine ($validator, $arg, $fielddata);
     push (@results, $result) if $result ne "OK";
 	
@@ -1306,51 +1301,6 @@ sub call_options_routine {
 }
 
 #-----------------------------------------------------------------------------
-# call_defaultvalue_routine($self, $cgi, $default_field)
-# given the default value field (eg "myroutine" in VALUE="myroutine"), 
-# call that routine.
-# returns a scalar with the default value for a field. 
-#-----------------------------------------------------------------------------
-
-# XXX: this is largely the same as call_options_routine. We might
-# want to put those 2 functions together in the future. 
-sub call_defaultvalue_routine{
-  my ($self, $cgi, $default_field) = @_;
-
-  $default_field =~ s/\(.*\)$//;		# strip parens, if there are any
-  
-
-  # we got here through N layers of call stack, so walk up the stack
-  # N times. The 0th element of caller() is the package that's using
-  # FormMagick.pm, eg "My::App". 
-  
-  # walk up the call stack until we find something that's not 
-  # CGI::FormMagick. That's what we're looking for. 
-  my $callstack_level = 0;
-  while (caller($callstack_level) eq "CGI::FormMagick") {
-	$callstack_level++;
-  }
-  
-  my $calling_package = (caller($callstack_level))[0] || "";
-
-  # This sets up a reference to the user-defined sub that returns
-  # a default value for a field. 
-  # It ends up looking something like \&main::get_value(\$cgi).
-  # --srl
-  my $voodoo = "\&$calling_package\:\:$default_field(\$cgi)"; 
-
-  my $default_value;
-
-  unless ($default_value = eval $voodoo) {
-    # if the function doesn't exist, assume we want to use the raw string.
-	debug ($self, "Couldn't obtain a value from $voodoo for field");
-    my $default_value = $default_field;
-  }
-  return $default_value;
-}
-
-
-#-----------------------------------------------------------------------------
 # form_pre_event($self, $cgi)
 #
 # performs the PRE-EVENT (if any) for the form.  Usually used to do
@@ -1521,7 +1471,7 @@ Fields must ALWAYS have an ID value. Optional parameters are:
 
 =item * DESCRIPTION (a more verbose description)
 
-=item * VALUE (see below)
+=item * VALUE (the default value)
 
 =item * VALIDATION (a list of validation functions: see CGI::FM::Validator)
 
@@ -1564,24 +1514,6 @@ RADIO (requires OPTIONS attribute)
 CHECKBOX (CHECKED attribute is optional)
 
 =back
-
-=head2 Notes on parsing of VALUE attribute
-
-If your VALUE attribute ends in parens, it'll be taken as a subroutine
-to run.  Otherwise, it'll just be taken as a literal.
-
-This will be literal:
-
-    VALUE="username"
-
-This will run a subroutine:
-
-    VALUE="get_username()"
-
-The subroutine will be passed the $cgi object as an argument, so you can
-use the CGI params to help you generate the value you need.
-
-Your subroutine should return a string containing the value you want.
 
 =head2 Notes on parsing of OPTIONS attribute
 

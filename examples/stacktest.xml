@@ -1,0 +1,43 @@
+<FORM TITLE="e-smith demo application" HEADER="head.tmpl" 
+  FOOTER="foot.tmpl" POST-EVENT="done">
+  <PAGE NAME="Page1" TITLE="Page 1" POST-EVENT="gotopage"
+  DESCRIPTION="Pick a page between 1 and 10">
+    <FIELD ID="gotopage" LABEL="Go to page" TYPE="TEXT"/> 
+  </PAGE>
+  <PAGE NAME="Page2" TITLE="Page 2" POST-EVENT="gotopage"
+  DESCRIPTION="Pick a page between 1 and 10">
+    <FIELD ID="gotopage" LABEL="Go to page" TYPE="TEXT"/> 
+  </PAGE>
+  <PAGE NAME="Page3" TITLE="Page 3" POST-EVENT="gotopage"
+  DESCRIPTION="Pick a page between 1 and 10">
+    <FIELD ID="gotopage" LABEL="Go to page" TYPE="TEXT"/> 
+  </PAGE>
+  <PAGE NAME="Page4" TITLE="Page 4" POST-EVENT="gotopage"
+  DESCRIPTION="Pick a page between 1 and 10">
+    <FIELD ID="gotopage" LABEL="Go to page" TYPE="TEXT"/> 
+  </PAGE>
+  <PAGE NAME="Page5" TITLE="Page 5" POST-EVENT="gotopage"
+  DESCRIPTION="Pick a page between 1 and 10">
+    <FIELD ID="gotopage" LABEL="Go to page" TYPE="TEXT"/> 
+  </PAGE>
+  <PAGE NAME="Page6" TITLE="Page 6" POST-EVENT="gotopage"
+  DESCRIPTION="Pick a page between 1 and 10">
+    <FIELD ID="gotopage" LABEL="Go to page" TYPE="TEXT"/> 
+  </PAGE>
+  <PAGE NAME="Page7" TITLE="Page 7" POST-EVENT="gotopage"
+  DESCRIPTION="Pick a page between 1 and 10">
+    <FIELD ID="gotopage" LABEL="Go to page" TYPE="TEXT"/> 
+  </PAGE>
+  <PAGE NAME="Page8" TITLE="Page 8" POST-EVENT="gotopage"
+  DESCRIPTION="Pick a page between 1 and 10">
+    <FIELD ID="gotopage" LABEL="Go to page" TYPE="TEXT"/> 
+  </PAGE>
+  <PAGE NAME="Page9" TITLE="Page 9" POST-EVENT="gotopage"
+  DESCRIPTION="Pick a page between 1 and 10">
+    <FIELD ID="gotopage" LABEL="Go to page" TYPE="TEXT"/> 
+  </PAGE>
+  <PAGE NAME="Page10" TITLE="Page 10" POST-EVENT="gotopage"
+  DESCRIPTION="Pick a page between 1 and 10">
+    <FIELD ID="gotopage" LABEL="Go to page" TYPE="TEXT"/> 
+  </PAGE>
+</FORM>

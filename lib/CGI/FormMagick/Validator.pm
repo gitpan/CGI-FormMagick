@@ -5,7 +5,7 @@
 # This software is distributed under the GNU General Public License; see
 # the file COPYING for details.
 #
-# $Id: Validator.pm,v 1.2 2001/02/28 21:55:52 skud Exp $
+# $Id: Validator.pm,v 1.6 2001/03/13 20:21:37 skud Exp $
 #
 
 package    CGI::FormMagick::Validator;
@@ -263,8 +263,12 @@ The data looks like a good password
 =cut
 
 sub password {
-	my $data = $_[0];
-	return "XXX NOT YET IMPLEMENTED";
+	$_ = $_[0];	# easier to match on $_
+	if (/\d/ and /[A-Z]/ and /[a-z]/ and /\W/ and length($_) > 6) {
+		return "OK";
+	} else {
+		return "Not a good password.  Should have a mixture of upper and lower case letters, numbers, and non-alphanumeric characters.";
+	}
 }
 
 =pod
@@ -278,7 +282,7 @@ installed.
 
 sub date {
 	my $data = $_[0];
-	use Time::ParseDate;
+	require Time::ParseDate;
 	if (my $time = parsedate($data)) {
 		return "OK";
 	} else {
@@ -298,7 +302,7 @@ module to be installed.
 sub iso_country_code {
 	my $data = $_[0];
 
-	use Locale::Country;
+	require Locale::Country;
 	my @countries =  all_country_codes();
 
 	foreach $country (@countries) {
@@ -321,7 +325,7 @@ for it to work.
 
 sub US_state {
 	my $data = $_[0];
-	use Geography::States;
+	require Geography::States;
 
 	my $us = Geography::States->new('USA');
 
@@ -355,49 +359,69 @@ sub US_zipcode {
 
 =pod
 
-=item credit_card_type
-
-The data looks like a valid type of credit card (eg Visa, Mastercard).
-Requires Business::CreditCard to be installed.
-
-=cut
-
-sub credit_card_type {
-	my $data = $_[0];
-        use Business::CreditCard;
-	return "XXX NOT YET IMPLEMENTED";
-}
-
-=pod
-
 =item credit_card_number
 
-The data looks like a valid credit card number.
-Requires Business::CreditCard to be installed.
+The data looks like a valid credit card number.  Checks the input
+for numeric characters only, length, and runs it through the checksumming 
+algorithm used by most (all?) credit cards.
 
 =cut
 
 sub credit_card_number {
-	my $data = $_[0];
-	use Business::CreditCard;
+    my $data = $_[0];
+    my ($i, $sum, $weight);
+    
+    return "Credit card numbers may only contain numeric characters" 
+	if $number =~ /[^\d\s]/;
 
-	return "XXX NOT YET IMPLEMENTED";
+    $number =~ s/\D//g;
+
+    return "Must be at least 14 characters in length" 
+	unless length($number) >= 13 && 0+$number;
+
+    for ($i = 0; $i < length($number) - 1; $i++) {
+        $weight = substr($number, -1 * ($i + 2), 1) * (2 - ($i % 2));
+        $sum += (($weight < 10) ? $weight : ($weight - 9));
+    }
+
+    return "OK" if substr($number, -1) == (10 - $sum % 10) % 10;
+    return "Doesn't appear to be a valid credit card number";
+
 }
 
 =pod
 
 =item credit_card_expiry
 
-The data looks like a valid credit card expiry date.
-Requires Business::CreditCard to be installed.
+The data looks like a valid credit card expiry date.  Checks MM/YY and 
+MM/YYYY format dates and fails if the date is in the past or is more than 
+ten years in the future.
 
 =cut
 
+#
+# this validation routine was snarfed whole from Business::CreditCard
+#
+
 sub credit_card_expiry {
 	my $data = $_[0];
-	use Business::CreditCard;
+	my ($m, $y) = split(/\D/, $data); # split on first non-numeric char
 
-	return "XXX NOT YET IMPLEMENTED";
+	return "Expiry date must be in the format MM/YY or MM/YYYY"
+		if ($y =~ /\D/ or $m =~ /\D/);
+
+	my ($thism, $thisy) = (localtime())[4,5];
+	$y += (substr($thisy, 0, 2) * 100) if $y =~ /\d{2}/;
+
+	if ($y < $thisy) {
+		return "This expiry date appears to have already passed";
+	} elsif ($m < $thism) {
+		return "This expiry date appears to have already passed";
+	} elsif ($y > ($thisy + 10)) {
+		return "This expiry date is too far in the future";
+	} else {
+		return "OK";
+	}
 }
 
 
@@ -469,6 +493,12 @@ Here's an example routine that you might write:
             return "That's not one of: @list"
         }
     }
+
+=head1 SEE ALSO
+
+Be sure to read the SECURITY CONSIDERATIONS section in the main
+CGI::FormMagick documentation for information on performing extra
+validation under certain circumstances.
 
 =head1 AUTHOR
 

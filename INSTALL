@@ -17,7 +17,6 @@ module.
 
 	Time::ParseDate			(date)
 	Geography::States		(US_state)
-        Business::CreditCard            (credit_card_number)   
 	Net::IPv4ADDR			(ip_address)
 	Locale::Country			(iso_country_code)
 
@@ -41,4 +40,4 @@ so that it looks for perl in /usr/local/bin before it looks in /usr/bin.
 
 VERSION INFO
 
-Document version: $Id: INSTALL,v 1.9 2001/02/28 21:55:52 skud Exp $
+Document version: $Id: INSTALL,v 1.11 2001/03/06 22:14:17 skud Exp $
