@@ -5,7 +5,7 @@
 # This software is distributed under the GNU General Public License; see
 # the file COPYING for details.
 #
-# $Id: Validator.pm,v 1.37 2002/01/22 21:43:09 skud Exp $
+# $Id: Validator.pm,v 1.39 2002/01/29 22:50:42 adrian_chung Exp $
 #
 
 package    CGI::FormMagick::Validator;
@@ -42,6 +42,7 @@ our @EXPORT  = qw(
     domain_name 
     ip_number
     email_simple
+    mac_address
 
     US_state 
     US_zipcode 

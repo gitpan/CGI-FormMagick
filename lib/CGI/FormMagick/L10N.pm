@@ -4,8 +4,8 @@ use Locale::Maketext;
 
 package CGI::FormMagick::L10N;
 require Exporter;
-@ISA = qw(Locale::Maketext Exporter);
-@EXPORT = qw(add_lexicon check_l10n localise);
+@ISA = qw(Exporter);
+@EXPORT = qw(localise);
 
 =pod
 =head1 NAME
@@ -24,18 +24,19 @@ translations into another language.  The previous step to this is I18N
 ready to accept the translations.
 
 We've done the work of I18N for you, so all you have to do is provide
-translations for your apps.
+translations for your apps.  This is done using the <LEXICON> XML
+element, like so:
 
-FormMagick uses the C<Locale::Maketext> module for L10N.  It stores its
-translations for each language in a hash like this:
+    <FORM>
+        ...
+    </FORM>
 
-  %Lexicon = (
-    "Hello"     => "Bonjour",
-    "Click here"    => "Appuyez ici"
-  );
-
-You can add your own entries to any language lexicon using the
-C<add_lexicon()> method (see C<CGI::FormMagick> for how to call that method).
+    <LEXICON LANG="fr">
+        <ENTRY>
+            <BASE>Hello</BASE>
+            <TRANS>Bonjour</TRANS>
+        </ENTRY>
+    </LEXICON>
 
 Localisation preferences are picked up from the HTTP_ACCEPT_LANGUAGE 
 environment variable passed by the user's browser.  In Netscape, you set
@@ -69,101 +70,43 @@ Templates, you will have to explicitly call the l10n routines.
 
 =head1 USER METHODS
 
-=head2 add_lexicon($lang, $lexicon_hashref)
-
-This method is deprecated and will be removed in CGI::FormMagick 0.60 in
-favour of an XML-based lexicon.
-
-=begin testing
-BEGIN: {
-    use_ok('CGI::FormMagick');
-    use vars qw($fm);
-    use lib "./lib";
-}
-
-$ENV{HTTP_ACCEPT_LANGUAGE} = $ENV{LANG} = $ENV{LANGUAGE} = "fr";
-
-ok ($fm = new CGI::FormMagick(TYPE => 'FILE', SOURCE => "t/simple.xml"), "created fm object");
-
-ok( $fm->add_lexicon("fr", { "yes" => "oui" })     , "Simple add_lexicon");
-ok( not($fm->add_lexicon("fr", "abc" ))  , "Non-hashref lexicon should fail");
-ok( not($fm->add_lexicon("fr", (1,2,3))) , "Non-hashref lexicon should fail");
-ok( not($fm->add_lexicon("fr", [1,2,3])) , "Non-hashref lexicon should fail");
-TODO: {
-    local $TODO = "Haven't yet implemented tests for non-existent languages";
-    ok( not($fm->add_lexicon("xx", { yes => 'oui' }))     , "Non-existent language should fail");
-}
-
-=end testing
-
-=cut
-
-sub add_lexicon {
-
-    warn "WARNING: add_lexicon is deprecated, and will be removed in FormMagick 0.60\n";
-
-    my ($self, $lang, $lexicon_hashref) = @_;
-
-    return undef unless ref($lexicon_hashref) eq "HASH";
-
-    # much reference nastiness to point to the Lexicon we want to change
-    # ... couldn't have done this without Schuyler's help.  Ergh.
-    # XXX needs work, no doubt
-
-    no strict 'refs';
-    my $changeme = "CGI::FormMagick::L10N::${lang}::Lexicon"; 
-    
-    # XXX somewhere here we have to check if $changeme exists, but that's
-    # *hard*
-
-    my $hard_ref = \%$changeme;
-    
-    while (my ($a, $b) = each %$lexicon_hashref) {
-        $hard_ref->{$a} = $b;
-    }
-    use strict 'refs';
-
-    #debug($self, "Our two refs are $hard_ref and $lex_ref");
-    #debug($self, "foo is " . $self->localise("foo"));
-    #debug($self, "Error is " . $self->localise("Error"));
-    return 1;
-}
-
-
-
-
-=head1 DEVELOPER METHODS 
-
-These routines are for internal use only, and are probably not of
-interest to anyone except FormMagick developers.
-
 =head2 localise($string)
 
 Translates a string into the end-user's preferred language by checking
-their HTTP_ACCEPT_LANG variable and pushing it through
-Locale::Maketext
+their HTTP_ACCEPT_LANG variable and looking up a lexicon hash for that
+language (if it exists).  If no translation can be found, returns the
+original string untranslated.
 
 WARNING WARNING WARNING: The internals of this routine will change 
 significantly in version 0.60, when we remove Locale::Maketext from 
 the equation.  However, its output should still be the same.  Just FYI.
 
-=for testing
+=begin testing
+
+BEGIN: {
+    use_ok('CGI::FormMagick');
+    use vars qw($fm);
+    use lib "lib/";
+}
+
+$ENV{HTTP_ACCEPT_LANGUAGE} = 'fr, en, de';
+my $fm = CGI::FormMagick->new(TYPE => 'FILE', SOURCE => "t/lexicon.xml");
+
 is($fm->localise("yes"), "oui", "Simple localisation");
+is($fm->localise("Hello"), "Bonjour", "Simple localisation");
 is($fm->localise("xyz"), "xyz", "Attempted localisation of untranslated string");
 is($fm->localise(""),    "",    "Fail gracefully on localisation of empty string");
 
+=end testing
 
 =cut
 
 sub localise {
     my $fm = shift;
     my $string = shift || "";
-    ($string) = ($string =~ /(.*)/s);
-    warn "String is $string\n";
-    if (my $localised_string = $fm->{language}->maketext($string)) {
-        return $localised_string;
+    if (my $trans = $fm->{lexicon}->{$string}) {
+        return $trans;
     } else {
-        warn "L10N warning: No localisation string found for '$string' for language $ENV{HTTP_ACCEPT_LANGUAGE}";
         return $string;
     }
 }
@@ -186,20 +129,74 @@ sub check_l10n {
     my @langs = split(/, /, $ENV{HTTP_ACCEPT_LANGUAGE});
     foreach my $lang (@langs) {
         print qq(<h2>Language: $lang</h2>);
-
-        no strict 'refs';
-        my $lex= "CGI::FormMagick::L10N::${lang}::Lexicon";
-        debug($self, "Lexicon name is $lex");
-        debug($self, scalar(keys %$lex) . " keys in lexicon");
-        foreach my $term (keys %$lex) {
-            print qq(<p>$term<br>
-                <i>$lex->{$term}</i></p>);
-        } 
-        use strict 'refs';
     }
 }
 
-=pod 
+=head2 get_lexicon()
+
+Attempts to find a suitable localisation lexicon for use, and returns it
+as a hash.
+
+=cut
+
+sub get_lexicon {
+    shift;
+    my (@lexicons) = @_;
+    my @preferred_languages = get_languages();
+
+    my %lexicons;
+    foreach my $lex (@lexicons) {
+        $lexlang = $lex->[0]->{LANG};
+        $lexicons{$lexlang} = $lex;
+    }
+
+    my %thislex = ();
+    PL: foreach my $pl (@preferred_languages) {
+        if ($lexicons{$pl}) {
+            %thislex = clean_lexicon($lexicons{$pl});
+            last PL;
+        }
+    }
+    return %thislex;
+}
+
+=head2 clean_lexicon($lexhashref)
+
+Given a messy lexicon hashref, clean it up into a nice neat hash of
+base/translation pairs.
+
+=cut
+
+sub clean_lexicon {
+    my $dirty = shift;
+    my @entries = CGI::FormMagick::clean_xml_array(@$dirty);
+    my %return_lexicon;
+    foreach my $e (@entries) {
+        #$return_lexicon{$e->{content}->{BASE}} = $e->{content}->{TRANS};
+        $base  = $e->{content}->[4]->[2];
+        $trans = $e->{content}->[8]->[2];
+        if ($base && $trans) {
+            $return_lexicon{$base} = $trans;
+        }
+    }
+    return %return_lexicon;
+}
+
+=head2 get_languages()
+
+Picks up the preferred language(s) from $ENV{HTTP_ACCEPT_LANGUAGE}
+
+=for testing
+$ENV{HTTP_ACCEPT_LANGUAGE} = "fr, de, en";
+my @langs = CGI::FormMagick::L10N::get_languages();
+is($langs[1], "de", "pick up list of languages");
+
+=cut
+
+sub get_languages {
+    return split ", ", $ENV{HTTP_ACCEPT_LANGUAGE};
+}
+
 
 =head1 SEE ALSO
 

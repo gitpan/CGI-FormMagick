@@ -5,7 +5,7 @@
 # the file COPYING for details.
 
 #
-# $Id: Utils.pm,v 1.24 2002/01/22 21:13:15 skud Exp $
+# $Id: Utils.pm,v 1.25 2002/02/04 22:53:25 skud Exp $
 #
 
 package    CGI::FormMagick;
@@ -353,7 +353,6 @@ sub user_pressed_enter {
         return 0;
     }
 }
-
 
 =head2 $fm->form()
 

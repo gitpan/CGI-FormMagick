@@ -9,6 +9,8 @@ my $fm = new CGI::FormMagick(
     SOURCE => get_validations_xml(),
 );
 
+$fm->debug(1);
+
 $fm->display();
 
 # TODO: Figure out why this ends with "Errors"

@@ -5,7 +5,7 @@
 # the file COPYING for details.
 
 #
-# $Id: Setup.pm,v 1.10 2002/01/22 21:13:15 skud Exp $
+# $Id: Setup.pm,v 1.14 2002/01/29 20:47:27 skud Exp $
 #
 
 package    CGI::FormMagick;
@@ -55,8 +55,10 @@ sub default_xml_filename {
 
 =head2 parse_xml()
 
-Cleans up the output of parse_xml() and returns it as a nicer, more
-usable data structure, like this:
+Parses the XML input, setting $fm->{xml} to a usable hash of the form
+elements, and $fm->{lexicon} to a hash of the l10n lexicon.
+
+The $fm->{xml} hash has the following form:
 
     {
         'FORM' => {
@@ -78,6 +80,14 @@ usable data structure, like this:
                          'ID' => 'lastname',
                          'VALIDATION' => 'nonblank',
                          'LABEL' => 'last name'
+                     }
+                     {
+                         'TYPE' => 'FRAGMENT',
+                         'CONTENT' => 'This is a simple fragment'
+                     }
+                     {
+                         'TYPE' => 'SUBROUTINE',
+                         'SRC' => 'fragment_subroutine_name()'
                      }
                  ],
                  'NAME' => 'Personal',
@@ -128,23 +138,87 @@ sub parse_xml {
 
     my %form_attributes = %{$dirty_form[0]};
 
-    my @form_elements = @dirty_form[1..$#dirty_form];
-    @form_elements = $self->clean_xml_array(@form_elements);
+    my @form_elements = $self->clean_xml_array(@dirty_form[1..$#dirty_form]);
 
+    my ($pages, $lexicon) = 
+        $self->clean_page_list(\@form_elements, \%form_attributes);
+
+    $self->{xml} = {
+        %form_attributes,
+        PAGES => $pages,
+    };
+
+    $self->{lexicon} = $lexicon;
+
+}
+
+=head2 clean_field_list
+
+Given a messy field list (as seen as @page_fields in parse_xml()),
+removes extraneous data and returns a clean list.
+
+=cut
+
+sub clean_field_list {
+    my $self = shift;
+    my @page_fields = @_;
+    my @fields;
+    FIELD: foreach my $field (@page_fields) {
+        my $field_type = $field->[0];
+        my %field_attributes = %{$field->[1]};
+        my @this_field = @$field;
+        my @field_elements = @this_field[2..$#this_field];
+        @field_elements = $self->clean_xml_array(@field_elements);
+
+        FIELD_ELEMENT: foreach my $field_element (@field_elements) {
+            if ($field_type eq 'HTML') {
+                $field_attributes{TYPE} = 'HTML';
+                $field_attributes{CONTENT} = $field->[3];
+            } elsif ($field_type eq 'SUBROUTINE') {
+                $field_attributes{TYPE} = 'SUBROUTINE';
+            } elsif ($field_element->{type}) {
+                $field_attributes{$field_element->{type}} = 
+                    $field_element->{content}->[2];
+            } else {
+                next FIELD_ELEMENT;
+            }
+        }
+
+        push @fields, \%field_attributes;
+    }
+
+    return @fields;
+}
+
+
+=head2 clean_page_list(\@form_elements, \%form_attributes)
+
+Given a messy list of form elements (as seen as @form_elements in 
+parse_xml()), removes extraneous data and returns: 1) a
+clean list of pages in the form, and 2) a lexicon hash.
+
+=cut
+
+sub clean_page_list {
+    my $self = $_[0];
+    my @form_elements = @{$_[1]};
+    my %form_attributes = %{$_[2]};
     my @form_pages;
-    my @pages;
-
-    ELEMENT: foreach my $form_element (@form_elements) {
+    my @lexicons;
+    FORM_ELEMENT: foreach my $form_element (@form_elements) {
         if (not $form_element->{type}) {
-            next ELEMENT;
+            next FORM_ELEMENT;
         } elsif ($form_element->{type} eq 'PAGE') {
             push @form_pages, $form_element->{content};
+        } elsif ($form_element->{type} eq 'LEXICON') {
+            push @lexicons, $form_element->{content};
         } elsif ($form_element->{type}) {
             $form_attributes{$form_element->{type}} = 
                 $form_element->{content}->[2];
         }
     }
 
+    my @pages;
     PAGE: foreach my $page (@form_pages) {
         my %page_attributes = %{$page->[0]};
         my @this_page = @$page;
@@ -152,46 +226,34 @@ sub parse_xml {
         @page_elements = $self->clean_xml_array(@page_elements);
 
         my @page_fields;
+        #use Data::Dumper;
+        #print Dumper @page_elements;
         PAGE_ELEMENT: foreach my $page_element (@page_elements) {
             if (not $page_element->{type}) {
                 next PAGE_ELEMENT;
             } elsif ($page_element->{type} eq 'FIELD') {
-                push @page_fields, $page_element->{content};
+                push @page_fields, 
+                        ["FIELD", @{$page_element->{content}}];
+            } elsif ($page_element->{type} eq 'HTML') {
+                push @page_fields, 
+                        ["HTML", @{$page_element->{content}}];
+            } elsif ($page_element->{type} eq 'SUBROUTINE') {
+                push @page_fields, 
+                        ["SUBROUTINE", @{$page_element->{content}}];
             } elsif ($page_element->{type}) {
                 $page_attributes{$page_element->{type}} = 
                     $page_element->{content}->[2];
             }
         }
 
-        my @fields;
-        FIELD: foreach my $field (@page_fields) {
-            my %field_attributes = %{$field->[0]};
-            my @this_field = @$field;
-            my @field_elements = @this_field[1..$#this_field];
-            @field_elements = $self->clean_xml_array(@field_elements);
-
-            FIELD_ELEMENT: foreach my $field_element (@field_elements) {
-                if (not $field_element->{type}) {
-                    next FIELD_ELEMENT;
-                } elsif ($field_element->{type}) {
-                    $field_attributes{$field_element->{type}} = 
-                        $field_element->{content}->[2];
-                }
-            }
-
-            push @fields, \%field_attributes;
-        }
+        my @fields = $self->clean_field_list(@page_fields);
 
         push @pages, { %page_attributes, FIELDS => \@fields };
-        #push @pages, [@page_elements];
     }
 
-    my $clean = {
-        %form_attributes,
-        PAGES => \@pages,
-    };
+    my %lexicon = CGI::FormMagick::L10N->get_lexicon(@lexicons);
 
-    return $clean;
+    return \@pages, \%lexicon;
 }
 
 =head2 clean_xml_array($xml)

@@ -5,7 +5,7 @@
 # the file COPYING for details.
 
 #
-# $Id: Events.pm,v 1.7 2002/01/22 21:13:15 skud Exp $
+# $Id: Events.pm,v 1.9 2002/02/04 20:10:15 skud Exp $
 #
 
 package    CGI::FormMagick;
@@ -45,22 +45,13 @@ TODO: {
 sub form_pre_event {
     my ($self) = @_;
 
+    $self->debug_msg("This is the form pre event");
+    $self->debug_msg("This is the form pre event");
+
     # find out what the form pre_event action is. 
     my $pre_form_routine = $self->{xml}->{'PRE-EVENT'} || return;
 
-    if ($pre_form_routine) {
-        my $cp = $self->{calling_package};
-
-        my $voodoo = "\&$cp\:\:$pre_form_routine(\$self->{cgi})"; 
-
-        # if the pre_form_routine is defined in the calling file, 
-        # it'll run. Otherwise, we'll give some simple display of the
-        # variables that were submitted.
-
-        unless (eval $voodoo) {
-            $self->debug_msg("<p>There was no pre-form routine.</p>\n")
-        }
-    }
+    $self->do_external_routine($pre_form_routine);
 }
 
 =pod

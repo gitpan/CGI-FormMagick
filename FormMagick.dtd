@@ -49,12 +49,14 @@ description.  All the other field-related information is in attributes.
 <!ATTLIST FIELD MULTIPLE    (YES|NO) "NO"       >
 <!ATTLIST FIELD SIZE        CDATA   #IMPLIED    >
 
-<!-- A fragment is an empty element with just one attribute: its source.
--->
+<!-- An HTML fragment contains CDATA for HTML to put in that place -->
 
-<!ELEMENT FRAGMENT (#CDATA)>
-<!ATTLIST FRAGMENT TYPE         CDATA	#IMPLIED        >
-<!ATTLIST FRAGMENT SOURCE 	CDATA	#IMPLIED        >
+<!ELEMENT HTML (#CDATA)>
+
+<!-- A SUBROUTINE fragment gives the name of a subroutine to run -->
+
+<!ELEMENT SUBROUTINE>
+<!ATTLIST FRAGMENT SRC   	CDATA	#REQUIRED       >
 
 
 <!-- Lexicon stuff.  LEXICON is a top-level element with a required LANG

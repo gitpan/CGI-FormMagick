@@ -11,9 +11,7 @@ WriteMakefile(
 				XML::Parser => 2.30,
 				Text::Template => 1.23,
 				Class::ParamParser => 1.0401,
-				Locale::Maketext => 0.18,
 				CGI::Persistent => 0.21,
-                                Persistence::Object::Simple => 0.47,
 
 	# required for validation routines only.  I'm commenting them
 	# out for now.

@@ -5,7 +5,7 @@
 # This software is distributed under the GNU General Public License; see
 # the file COPYING for details.
 #
-# $Id: Network.pm,v 1.4 2002/01/22 21:43:09 skud Exp $
+# $Id: Network.pm,v 1.7 2002/01/30 00:45:14 adrian_chung Exp $
 #
 
 package    CGI::FormMagick::Validator;
@@ -204,5 +204,32 @@ sub password {
     }
 }
 
+=pod
+
+=item mac_address
+
+The data looks like a good MAC address
+
+=for testing
+isnt( mac_address("string"), "OK" , "string is not a good MAC address");
+isnt( mac_address(), "OK" , "undef is not a good MAC address");
+isnt( mac_address(""), "OK" , "empty string is not a good MAC address");
+isnt( mac_address("01:23:45"), "OK" , "01:23:45 is too short for a MAC address");
+isnt( mac_address("01:23:45:67:89:AB:CD"), "OK" , "01:23:45:67:89:AB:CD is too long for a MAC address");
+is( mac_address("08:00:cf:2b:12:34"), "OK" , "08:00:cf:2b:12:34 is a good MAC address");
+is( mac_address("08:00:CF:2B:12:34"), "OK" , "08:00:CF:2B:12:34 is a good MAC address");
+
+=cut
+
+sub mac_address {
+    $_ = lc shift;  # easier to match on $_
+    if (not defined $_) {
+        return "You must provide a MAC address.";
+    } elsif (/^([0-9a-f][0-9a-f](:[0-9a-f][0-9a-f]){5})$/) {
+        return "OK";
+    } else {
+        return "The MAC address you provided was not valid.";
+    }
+}
 
 return "FALSE";

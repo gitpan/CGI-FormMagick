@@ -1,5 +1,28 @@
 Revision history for Perl extension FormMagick.
 
+0.55
+----
+
+MAJOR CHANGES, WARNING WARNING AWOOGA AWOOGA.  THIS RELEASE BREAKS
+BACKWARDS COMPATIBILITY LOTS.
+
+Added HTML and SUBROUTINE elements to allow arbitrary stuff in your
+forms.
+
+Added LEXICON element so that l10n now happens right in your XML.
+Removed all Locale::Maketext stuff.
+
+OPTIONS which are hashes (either from a subroutine or static) now sort
+by value rather than key.
+
+CHECKBOX values now default to "1" if you don't set them, and retain
+their state when navigating back and forth.
+
+Added validation routine(s):
+    Network         mac_address()
+
+Improved taint-friendliness.
+
 0.50
 ----
 

@@ -3,12 +3,12 @@
 # the file COPYING for details.
 
 #
-# $Id: FormMagick.pm,v 1.86 2002/01/22 21:16:50 skud Exp $
+# $Id: FormMagick.pm,v 1.95 2002/02/04 22:58:17 skud Exp $
 #
 
 package    CGI::FormMagick;
 
-my $VERSION = $VERSION = "0.50";
+my $VERSION = $VERSION = "0.55";
 
 use XML::Parser;
 use Text::Template;
@@ -69,11 +69,11 @@ You (the developer) provide at least:
 
 =item *
 
-Form descriptions (XML)
+An XML form description
 
 =item *
 
-HTML templates (Text::Template format) for the page headers and footers
+HTML templates for the page headers and footers
 
 =back
 
@@ -83,7 +83,7 @@ And may optionally provide:
 
 =item *
 
-L10N lexicon entries 
+Translations of strings used in your application, for localisation
 
 =item *
 
@@ -144,7 +144,7 @@ sub new {
     $self->{inputtype} 	= uc($args{TYPE}) 	|| "FILE";
     $self->{source}     = $args{SOURCE};
 
-    foreach (qw(PREVIOUSBUTTON RESETBUTTON STARTOVERLINK)) {
+    foreach (qw(PREVIOUSBUTTON RESETBUTTON STARTOVERLINK NEXTBUTTON)) {
         if (exists $args{$_}) {
             warn("$_ as arg to new() is deprecated -- use accessor method instead\n");
             $self->{lc($_)} = $args{$_};
@@ -153,13 +153,9 @@ sub new {
         }
     }	
 
-    $self->{xml}       = $self->parse_xml();
+    $self->parse_xml();
 
     # figure out what language we're using
-    $self->{language} = CGI::FormMagick::L10N->get_handle()
-        || die "Can't find an acceptable language module.";
-    $self->{language}->fail_with( sub { undef } );
-
     $self->{sessiondir} = initialise_sessiondir($args{SESSIONDIR});
     $self->{calling_package} = (caller)[0]; 
 
@@ -319,6 +315,10 @@ sub display {
     }
 
     $self->debug_msg("The page stack started out as $self->{page_stack}");
+
+    unless ($self->just_starting) {
+        $self->cleanup_checkboxes();
+    }
 
     # Check whether they clicked "Previous" or something else
     # If they clicked previous, we avoid validation etc.  See
@@ -659,7 +659,8 @@ meaningless anyway, so why would you do that?
 =item * 
 
 Arrays will result in options being sorted in the same order they were
-listed.  Hashes will be sorted by key using the default Perl C<sort()>.
+listed.  Hashes will be sorted by value using the Perl's cmp() function
+(ASCIIbetical sort, in other words).
 
 =item * 
 
@@ -761,6 +762,7 @@ is($fm->{page_stack}, 0, "Set page stack when magic wherenext is set");
 
 sub prepare_for_next_page {
     my ($self) = @_;
+
     $self->validate_page($self->{page_number});
 
     unless ($self->errors()) {
@@ -779,6 +781,68 @@ sub prepare_for_next_page {
     $self->debug_msg("The page stack is now $self->{page_stack}");
 }
 
+=head2 $fm->cleanup_checkboxes()
+
+Checkbox params only get passed around if they're checked.  An unchecked
+box doesn't send "checkbox=0" ... no, it just completely fails to send
+anything at all.  This is a PITA, as it's impossible to distinguish an
+explicity unchecked box from one that never got seen at all.
+
+This subroutine is intended to clean up the mess, by checking the
+checkboxes that were expected on the current page against what it
+actually saw on the CGI parameters, and explicitly setting any missing
+ones to 0.
+
+=cut
+
+sub cleanup_checkboxes {
+    my $fm = shift;
+    my $page = $fm->page();
+    $fm->debug_msg("CC: page is $page");
+    my @fields = @{$page->{FIELDS}};
+    $fm->debug_msg("CC: fields are @fields");
+
+    my @checkboxes;
+    foreach my $f (@fields) {
+        if ($f->{TYPE} eq 'CHECKBOX') {
+            push @checkboxes, $f->{ID};
+        }
+    }
+    $fm->debug_msg("CC: checkboxes are @checkboxes");
+
+    my $clean_cgi = new CGI;
+    foreach my $c (@checkboxes) {
+        unless ($clean_cgi->param($c)) {
+            $fm->{cgi}->param(-name => $c, -value => '0');
+            $fm->debug_msg("CC: zeroing $c");
+        }
+    }
+
+    $fm->commit_session();
+
+}
+
+=head2 $fm->commit_session()
+
+Commits a session's details to disk, in the same way as CGI::Persistent.
+
+=cut
+
+sub commit_session {
+    my $fm = shift;
+    my $cgi = $fm->{cgi};
+
+    my $fn = $cgi->param('.id');
+    my $po = new Persistence::Object::Simple __Fn => $fn;
+
+    my @names = $cgi->param ();
+    foreach ( @names ) { 
+        $po->{$_} = $cgi->param( $_ ) unless $_ eq ".id";
+    }
+
+    $po->commit();
+}
+
 =head2 get_option_labels_and_values ($fieldinfo)
 
 returns labels and values for fields that require them, by running a
@@ -786,13 +850,23 @@ subroutine or whatever else is needed.  Returns a hashref containing:
 
     { labels => \@options_labels, $vals => \@option_values }
 
-=for testing
-TODO: {
-    local $TODO = "writeme";
-    local $^W = 0; # Until these tests are happy
-    ok($fm->get_option_labels_and_values($f), "get option labels and values");
-    ok($fm->get_option_labels_and_values($f), "fail gracefully with empty/no options attribute");
-}
+=begin testing
+
+my $fieldinfo = {
+    options     =>  "'foo', 'bar', 'baz'",
+};
+my $result = $fm->get_option_labels_and_values($fieldinfo);
+is_deeply($result->{labels}, [qw(foo bar baz)], "Picked up labels from array");
+is_deeply($result->{vals},   [qw(foo bar baz)], "Picked up vals from array");
+
+$fieldinfo = {
+    options     =>  "'foo' => 'zzz', 'bar' => 'yyy', 'baz' => 'xxx'",
+};
+$result = $fm->get_option_labels_and_values($fieldinfo);
+is_deeply($result->{labels}, [qw(xxx yyy zzz)], "Picked up labels from hash");
+is_deeply($result->{vals},   [qw(baz bar foo)], "Picked up vals from hash");
+
+=end testing
 
 =cut
 
@@ -811,11 +885,13 @@ sub get_option_labels_and_values {
     my $options_attribute = $fieldinfo->{'options'} || "";
   
     my $options_ref = $self->parse_options_attribute($options_attribute);
-	
+
     # DWIM with the data that came in from the XML file or the options function,
     # since we may have gotten an array or a hash for those values. 
     if (ref($options_ref) eq "HASH") {
-        foreach my $k (sort keys %$options_ref) {
+        foreach my $k (sort {
+                $options_ref->{$a} cmp $options_ref->{$b}
+            } keys %$options_ref) {
             # the keys are the option field values, the values are the option text
             push @option_values, $k;
             push @option_labels, $options_ref->{$k};
@@ -832,6 +908,7 @@ sub get_option_labels_and_values {
 
     return {labels => \@option_labels, vals => \@option_values};
 }
+
 
 =pod
 
@@ -943,6 +1020,7 @@ foreach my $expectations (
 sub do_external_routine {
     my $self = shift;
     my $routine = shift || "";
+    $self->debug_msg("Doing external routine $routine");
     my @args = @_;
     scalar @args or push @args, $self->{cgi};
 

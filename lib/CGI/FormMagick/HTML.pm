@@ -11,7 +11,7 @@
 #
 
 #
-# $Id: HTML.pm,v 1.34 2002/01/22 21:13:15 skud Exp $
+# $Id: HTML.pm,v 1.41 2002/02/04 22:53:25 skud Exp $
 #
 
 package    CGI::FormMagick;
@@ -80,7 +80,7 @@ print the table row containing the form's buttons
 sub print_buttons {
     my $fm = shift;
     print "\n";
-    print qq(<tr><td></td><td class="buttons">);
+    print qq(<tr><td></td><td><div class="buttons">);
     my $label = $fm->localise("Previous");
     print qq(<input type="submit" name="Previous" value="$label">) 
   	unless $fm->{page_number} == FIRST_PAGENUM() 
@@ -91,13 +91,15 @@ sub print_buttons {
         $label = $fm->localise("Finish");
         print qq(<input type="submit" name="Finish" value="$label">\n);
     } else {
-        $label = $fm->localise("Next");
-        print qq(<input type="submit" name="Next" value="$label">\n);
+        if ($fm->{nextbutton}) {
+            $label = $fm->localise("Next");
+            print qq(<input type="submit" name="Next" value="$label">\n);
+        }
     }
     $label = $fm->localise("Clear this form");
     print qq(<input type="reset" value="$label">) 
   	if $fm->{resetbutton};
-    print qq(</tr>);
+    print qq(</div></td></tr>);
 }
 
 
@@ -206,7 +208,7 @@ sub print_field_description {
     my $fm = shift;
     my $d = shift;
     $d = $fm->localise($d);
-    print qq(<tr><td class="fielddescription" colspan=2>$d</td></tr>);
+    print qq(<tr><td><div class="fielddescription" colspan=2>$d</div></td></tr>);
 }
 
 
@@ -238,25 +240,61 @@ sub display_fields {
     my @definitions;
 
     foreach my $field ( @{$fm->page->{FIELDS}} ) {
-
         my $info = $fm->gather_field_info($field);
-        $fm->print_field_description($info->{description}) if $info->{description};
-    
-        if (($info->{type} eq "SELECT") || ($info->{type} eq "RADIO")) {
-            $fm->set_option_lv($info);
+        if ($info->{type} eq "HTML") {
+            print qq(<tr><td cols="2">$info->{content}</td></tr>\n);
+        } elsif ($info->{type} eq "SUBROUTINE") {
+            my $output = $fm->call_subroutine_fragment($info->{src});
+            print qq(<tr><td cols="2">$output</td></tr>\n);
+        } else {
+            $fm->print_field_description($info->{description}) 
+                if $info->{description};
+        
+            if (($info->{type} eq "SELECT") || ($info->{type} eq "RADIO")) {
+                $fm->set_option_lv($info);
+            }
+
+            print qq(<tr><td><div class="label">) . $fm->localise($info->{label}) ;
+        
+            # display errors (if any) below the field label.
+            my $error = $fm->{errors}->{$info->{label}};
+            $fm->print_field_error($error) if $error;
+                    
+            my $inputfield = $fm->build_inputfield($info);
+            print  qq(</div></td> <td><div class="field">$inputfield</div></td></tr>);
         }
-
-        print qq(<tr><td class="label">) . $fm->localise($info->{label}) ;
-    
-        # display errors (if any) below the field label.
-        my $error = $fm->{errors}->{$info->{label}};
-        $fm->print_field_error($error) if $error;
-		
-        my $inputfield = $fm->build_inputfield($info);
-        print  qq(</td> <td class="field">$inputfield</td></tr>);
-
     }
 }
+
+=head2 call_subroutine_fragment($subroutine)
+
+Calls a subroutine for use with the <SUBROUTINE> element.
+
+=cut
+
+sub call_subroutine_fragment {
+    my ($self, $routine) = @_;
+
+    $routine =~ s/\(\)$//;
+
+    $self->debug_msg("Subroutine is $routine");
+
+    my %sub = (
+        package => $self->{calling_package},
+        sub => $routine,
+    );
+
+    if (CGI::FormMagick::Sub::exists(%sub)) {
+        $self->debug_msg("Subroutine exists");
+        return CGI::FormMagick::Sub::call(%sub);
+    } else {
+        $self->debug_msg("Subroutine does not exist");
+        return undef;
+    }
+
+}
+
+
 
 =pod
 
@@ -314,7 +352,7 @@ sub gather_field_info {
 
     my %f;
     foreach (qw( VALIDATION LABEL TYPE ID OPTIONS DESCRIPTION CHECKED
-    	MULTIPLE SIZE)) {
+    	MULTIPLE SIZE SRC CONTENT)) {
 	    $f{lc($_)} = $fieldinfo->{$_} if $fieldinfo->{$_};
     }
 
@@ -333,7 +371,8 @@ sub gather_field_info {
 
     # otherwise, use VALUE attribute or default to blank.
     } else {
-        $f{value} = $fieldinfo->{VALUE} || "";
+        my $default = ($fieldinfo->{TYPE} eq 'CHECKBOX' ? 1 : "");
+        $f{value} = $fieldinfo->{VALUE} || $default; 
     }
 
     $fm->debug_msg("Field name is $f{id}");
@@ -396,12 +435,21 @@ sub build_inputfield {
         $inputfield =~ s/(VALUE="$info->{value}")/$1 CHECKED/;
 
     } elsif ($info->{type} eq "CHECKBOX") {
+
+        # figure out whether hte box should be checked or not
+        my $user_input = $fm->{cgi}->param($info->{id});
+        my $c;
+        if (defined $user_input) {
+            $c = $user_input ? 1 : 0;
+        } else {
+            $c = $info->{checked};  # get from XML spec
+        }
+
         $inputfield = $tagmaker->input(
             type    => $info->{type},
             name    => $info->{id},
             value   => $info->{value},
-            checked => $info->{checked},
-            text    => $info->{label}
+            checked => $c,
         );
 
     } else {
