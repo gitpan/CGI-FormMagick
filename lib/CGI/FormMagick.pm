@@ -11,7 +11,7 @@
 #
 
 #
-# $Id: FormMagick.pm,v 1.6 2001/02/28 21:55:52 skud Exp $
+# $Id: FormMagick.pm,v 1.9 2001/03/01 20:42:07 skud Exp $
 #
 
 package    CGI::FormMagick;
@@ -19,7 +19,7 @@ require    Exporter;
 @ISA     = qw(Exporter);
 @EXPORT  = qw(new display);
 
-my $VERSION = $VERSION = "0.3.0";
+my $VERSION = $VERSION = "0.3.1";
 
 use strict;
 use Carp;
@@ -28,12 +28,8 @@ use XML::Parser;
 use Text::Template;
 use CGI::Persistent;
 use CGI::FormMagick::TagMaker;
-
-# Figure out what language we're using
-
 use CGI::FormMagick::L10N;
-my $language = CGI::FormMagick::L10N->get_handle()
-        || die "Can't find an acceptable language module.";
+
 
 =pod 
 
@@ -132,7 +128,7 @@ sub new {
 
   my $p = new XML::Parser (Style => 'Tree');
   $self->{debug} = $args{DEBUG} || 0;
-  $self->{inputtype} = $args{TYPE} || "FILE";
+  $self->{inputtype} = uc($args{TYPE}) || "FILE";
 
   if ($self->{inputtype} eq "FILE") {
     if ($args{SOURCE}) {
@@ -170,6 +166,10 @@ sub new {
   # print Dumper( $self->{xml}) ;
   # print Dumper( $self->{xml}[1][0]) ;
   # print Dumper( $self->{current_page} );
+
+  # figure out what language we're using
+  $self->{language} = CGI::FormMagick::L10N->get_handle()
+        || die "Can't find an acceptable language module.";
   
   bless $self;
   return $self;
@@ -269,7 +269,7 @@ sub display {
   # HTML) then an h1 containing the FORM element's TITLE attribute
    
   print parse_template($self->{xml}[1][0]->{HEADER});
-  print "<h1>", localise($self->{xml}[1][0]->{TITLE}), "</h1>\n";
+  print "<h1>", $self->localise($self->{xml}[1][0]->{TITLE}), "</h1>\n";
 
   form_post_event($self, $cgi) if ($cgi->param("wherenext") &&
   	$cgi->param("wherenext") eq "Finish");
@@ -389,7 +389,7 @@ sub display_fields {
     my $value = $fieldinfo->{VALUE};
     my $description = $fieldinfo->{DESCRIPTION};
 
-    print_field_description($description) if $description;
+    $self->print_field_description($description) if $description;
 
     my $inputfield;
 
@@ -453,7 +453,7 @@ sub display_fields {
 						    );
     }
 	
-    print qq(<tr><td class="label">) . localise($label) . qq(</td>
+    print qq(<tr><td class="label">) . $self->localise($label) . qq(</td>
     	<td class="field">$inputfield</td></tr>);
 
   }
@@ -469,11 +469,14 @@ sub display_fields {
 sub print_page_header {
 
   my $self = shift;
-  # the level 2 heading is the PAGE element's TITLE heading
-  print "<h2>", localise($self->{current_page}[0]->{TITLE}), "</h2>\n";
+  my $title       = $self->{current_page}[0]->{TITLE};
+  my $description = $self->{current_page}[0]->{DESCRIPTION};
 
-  if ($self->{current_page}[0]->{DESCRIPTION}) {
-	  print '<p class="pagedescription">', localise($self->{current_page}[0]->{DESCRIPTION}), "</p>\n";
+  # the level 2 heading is the PAGE element's TITLE heading
+  print "<h2>", $self->localise($title), "</h2>\n";
+
+  if ($description) {
+	  print '<p class="pagedescription">', $self->localise($description), "</p>\n";
   }
 }
 
@@ -484,7 +487,9 @@ sub print_page_header {
 #----------------------------------------------------------------------------
 
 sub print_field_description {
+	my $self = shift;
 	my $d = shift;
+	$d = $self->localise($d);
 	print qq(<tr><td class="fielddescription" colspan=2>$d</td></tr>);
 }
 
@@ -514,8 +519,9 @@ sub parse_template {
 #----------------------------------------------------------------------------
 
 sub localise {
+	my $self = shift;
 	my $string = shift || "";
-	if (my $localised_string = $language->maketext($string)) {
+	if (my $localised_string = $self->{language}->maketext($string)) {
 		return $localised_string;
 	} else {
 		warn "L10N warning: No localisation string found for '$string' for language $ENV{HTTP_ACCEPT_LANGUAGE}";
@@ -564,8 +570,8 @@ sub add_lexicon {
 	use strict 'refs';
 
 	#debug($self, "Our two refs are $hard_ref and $lex_ref");
-	#debug($self, "foo is " . localise("foo"));
-	#debug($self, "Error is " . localise("Error"));
+	#debug($self, "foo is " . $self->localise("foo"));
+	#debug($self, "Error is " . $self->localise("Error"));
 
 }
 
@@ -708,7 +714,7 @@ sub validate_input {
         }
 
 	$self->debug("Result is $result");
-	push (@results, localise($result)) if ($result ne "OK");
+	push (@results, $self->localise($result)) if ($result ne "OK");
     }
 
     # for multiple errors, put semicolons between the errors before

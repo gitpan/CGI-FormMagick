@@ -3,24 +3,54 @@
 use strict;
 use CGI::FormMagick;
 
+#
+# suck in the XML from down below __DATA__
+#
+
+undef $/;
+my $data = <DATA>;
+
 my $fm = new CGI::FormMagick(
-	#DEBUG => 1,
+        TYPE => "STRING",
+	SOURCE => "$data",
+	#DEBUG => 1
 );
 
-$fm->add_lexicon( "fr", lexicon_fr() );
+#
+# Stuff for adding l10n translations
+#
+
+my $locale_dir = "./locale";
+
+opendir (LOCALES, $locale_dir) or die "Can't open locale directory: $!";
+my @langs = grep /^[a-z]{2}$/, readdir LOCALES;
+closedir LOCALES;
+
+foreach my $l (@langs) {
+	my %lex;
+	open (TRANS, "$locale_dir/$l/emailretrieval") or die "Can't open translation file $locale_dir/$l/emailretrieval";
+	local $/ = "\n\n";
+	while (<TRANS>) {
+		my ($base, $trans) = split "\n";
+		chomp $base;
+		chomp $trans;
+		$lex{$base} = $trans;
+	}
+	close TRANS;
+
+	$fm->add_lexicon($l, \%lex);
+}
+
+#
+# now we actually display the form
+#
+
 $fm->display();
+
 
 # list of mailcheck frequencies
 
 sub mailcheck_frequencies {
-	#return {
-		#never 		=> "Not at all",
-		#every5min 	=> "Every 5 minutes",
-		#every15min 	=> "Every 15 minutes",
-		#every30min 	=> "Every 30 minutes",
-		#everyhour 	=> "Every hour",
-		#every2hrs 	=> "Every 2 hours"
-	#};
 	return [
 		"Not at all",
 		"Every 5 minutes",
@@ -91,3 +121,42 @@ sub lexicon_fr {
 		"POP user account" => "compte d'utilisateur POP",
 	};
 }
+
+__DATA__
+<FORM TITLE="e-smith demo application" HEADER="head.tmpl" 
+  FOOTER="foot.tmpl" POST-EVENT="update_email_settings">
+  <PAGE NAME="Retrieval" TITLE="Change email retrieval settings" 
+  POST-EVENT="post_Retrieval_page">
+    <FIELD ID="retrieval_mode" LABEL="Email retrieval mode" TYPE="SELECT" 
+      OPTIONS="'Standard','ETRN','Multi-drop'" VALIDATION="nonblank"
+      DESCRIPTION="The mail retrieval mode can be set to standard (for dedicated Internet connections), ETRN (recommended for dialup connections), or multi-drop (for dialup connections if ETRN is not supported by your Internet provider)."/>
+    <FIELD ID="delegate_server" LABEL="Delegate mail server" TYPE="TEXT" 
+      DESCRIPTION="Your e-smith system includes a complete, full-featured email server. However, if for some reason you wish to delegate email processing to another system, specify the IP address of the delegate system here. For normal operation, leave this field blank."/>
+  </PAGE>
+  <PAGE NAME="ETRNMultiDropOptions" TITLE="ETRN and Multi-drop Options"
+  POST-EVENT="post_ETRNMultiDropOptions_page">
+    <FIELD ID="secondary_server" LABEL="Secondary mail server" TYPE="TEXT" 
+      VALIDATION="domain_name" DESCRIPTION="As you are using ETRN or Multi-drop, you must specify the hostname or IP address of your secondary mail server."/>
+    <FIELD ID="office_hours_frequency" LABEL="During office hours (8:00am to 6:00pm on weekdays)" TYPE="SELECT" 
+      OPTIONS="mailcheck_frequencies()" VALIDATION="nonblank"
+      DESCRIPTION="You can control how frequently the e-smith server and gateway contacts your secondary email server to fetch email. More frequent connections mean that you receive your email more quickly, but also cause Internet requests to be sent more often, possibly increasing your phone and Internet charges."/>
+    <FIELD ID="outside_office_hours_frequency" LABEL="Outside office hours on weekdays" TYPE="SELECT" 
+      OPTIONS="mailcheck_frequencies()" VALIDATION="nonblank"/>
+    <FIELD ID="weekend_frequency" LABEL="During the weekend" TYPE="SELECT" 
+      OPTIONS="mailcheck_frequencies()" VALIDATION="nonblank"/>
+  </PAGE>
+  <PAGE NAME="MultiDropOptions" TITLE="Multi-drop Options"
+  POST-EVENT="post_MultiDropOptions_page">
+  DESCRIPTION="As you are using multi-drop email, you must specify the POP user account and password. Also, you can either use the default e-smith server and gateway mail sorting method, or you can specify a particular message header to use for mail sorting.">
+    <FIELD ID="pop_user_account" LABEL="POP user account" TYPE="TEXT" 
+      VALIDATION="nonblank"/>
+    <FIELD ID="pop_user_account" LABEL="POP user password" TYPE="TEXT" 
+      VALIDATION="nonblank"/>
+    <FIELD ID="sort_method" LABEL="Sort method" TYPE="RADIO" 
+      OPTIONS="'Default','Choose your own'" VALIDATION="nonblank"/>
+  </PAGE>
+  <PAGE NAME="MultiDropSortHeader" TITLE="Multi-drop Sort Header">
+    <FIELD ID="multi_drop_sort_header" LABEL="Specify a header to sort by" 
+      TYPE="TEXT" VALIDATION="nonblank"/>
+  </PAGE>
+</FORM>

@@ -1,0 +1,60 @@
+e-smith demo application
+i-smeet demu eppleeceshun
+
+Change email retrieval settings
+Chunge-a imeeel retreeefel setteengs
+
+Rebecca's field
+Rebecca's feeeld
+
+Email retrieval mode
+Imeeel retreeefel mude-a
+
+The mail retrieval mode can be set to standard (for dedicated Internet connections), ETRN (recommended for dialup connections), or multi-drop (for dialup connections if ETRN is not supported by your Internet provider).
+Zee meeel retreeefel mude-a cun be-a set tu stunderd (fur dedeeceted Internet cunnecshuns), ITRN (recummunded fur deeeloop cunnecshuns), oor mooltee-drup (fur deeeloop cunnecshuns iff ITRN is nut sooppurted by yuoor Internet prufeeder).
+
+Delegate mail server
+Bork Bork Bork!
+
+Your e-smith system includes a complete, full-featured email server. However, if for some reason you wish to delegate email processing to another system, specify the IP address of the delegate system here. For normal operation, leave this field blank.
+Delegete-a meeel serfer
+
+ETRN and Multi-drop Options
+Yuoor i-smeet system incloodes a cumplete-a, fooll-feetoored imeeel serfer. Hooefer, iff fur sume-a reesun yuoo veesh tu delegete-a imeeel prucesseeng tu unuzeer system, speceeffy zee IP eddress ooff zee delegete-a system here-a. Fur nurmel oopereshun, leefe-a thees feeeld blunk.
+
+Secondary mail server
+Bork Bork Bork!
+
+As you are using ETRN or Multi-drop, you must specify the hostname or IP address of your secondary mail server.
+ITRN und Mooltee-drup Oopshuns
+
+During office hours (8:00am to 6:00pm on weekdays)
+Secundery meeel serfer
+
+You can control how frequently the e-smith server and gateway contacts your secondary email server to fetch email. More frequent connections mean that you receive your email more quickly, but also cause Internet requests to be sent more often, possibly increasing your phone and Internet charges.
+Es yuoo ere-a useeng ITRN oor Mooltee-drup, yuoo moost speceeffy zee hustneme-a oor IP eddress ooff yuoor secundery meeel serfer.
+
+Outside office hours on weekdays
+Bork Bork Bork!
+
+During the weekend
+Dooreeng oofffeece-a huoors (8:00em tu 6:00pm oon veekdeys)
+
+Multi-drop Options
+Yuoo cun cuntrul hoo freqoountly zee i-smeet serfer und getevey cuntects yuoor secundery imeeel serfer tu fetch imeeel. Mure-a freqoount cunnecshuns meun thet yuoo receeefe-a yuoor imeeel mure-a qooeeckly, boot elsu coose-a Internet reqooests tu be-a sunt mure-a oofftee, pusseebly increeseeng yuoor phune-a und Internet cherges.
+
+POP user account
+Bork Bork Bork!
+
+POP user password
+Ooootseede-a oofffeece-a huoors oon veekdeys
+
+Sort method
+Dooreeng zee veekund
+
+Multi-drop Sort Header
+Mooltee-drup Oopshuns
+
+Specify a header to sort by
+POP user eccuoont
+

@@ -1,7 +1,16 @@
 Revision history for Perl extension FormMagick.
 
-0.3.0
+0.3.1
+-----
+Added stub L10N perl modules for every language in iso639.  This means
+that add_lexicon() now works for *any* real language.
 
+Added some tools to assist developers in generating L10N translations.
+
+A couple of very small bugfixes.
+
+0.3.0
+-----
 Renamed to CGI::FormMagick
 
 Changes to DTD:
@@ -17,7 +26,7 @@ RADIO buttons now implemented
 CHECKBOX now implemented
 
 0.2.9
-
+-----
 Made FormMagick CPAN-friendly.
 
 Changes to DTD:

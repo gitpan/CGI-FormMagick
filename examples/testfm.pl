@@ -1,21 +1,20 @@
-#!/usr/bin/env perl 
+#!/usr/local/bin/perl
 
 BEGIN { 
 	$^W = 1;
 }
 
-#use lib "/home/srl/web/public_html/perl/formmagick";
-#chdir  "/home/srl/web/public_html/perl/formmagick/examples" or die "couldn't chdir to fm directory";
-
 use strict;
 use CGI::FormMagick;
 use Data::Dumper;
 
-my $xmlfilename = $ARGV[0] || "./testfm.xml";
+#my $xmlfilename = $ARGV[0] || "./testfm.xml";
 
 my $fm = new CGI::FormMagick(
+<<<<<<< testfm.pl
+=======
 	TYPE => "file", 
-	SOURCE => $xmlfilename,
+>>>>>>> 1.8
 	DEBUG => 1,
 );
 
