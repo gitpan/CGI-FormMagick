@@ -3,7 +3,7 @@
     <entry>
       <base>This text contains a {$var}.</base>
       <trans>A {$var} this text contains.</trans>
-    </entry>
+	</entry>
     <entry>
       <base>var</base>
       <trans>lexicon variable</trans>

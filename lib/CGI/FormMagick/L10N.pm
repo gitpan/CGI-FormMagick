@@ -252,7 +252,7 @@ sub get_lexicon {
 
     my %lexicons;
     foreach my $lex (@lexicons) {
-        $lexlang = $lex->[0]->{lang};
+        $lexlang = lc $lex->[0]->{lang};
 
         # merge multiple lexicons of the same language
         if ($lexicons{$lexlang}) {
@@ -344,7 +344,11 @@ sub clean_lexicon {
 
 =head2 get_languages()
 
-Picks up the preferred language(s) from $ENV{HTTP_ACCEPT_LANGUAGE}
+Picks up the preferred language(s) from $ENV{HTTP_ACCEPT_LANGUAGE}.
+Figures out super-languages (eg "en" is a super-language of "en-US") and
+pushes them onto the list, along with the fallback language specified by
+$fm->fallback_language() (if any).  Smashes them all to lowercase before 
+returning them.
 
 =begin testing
 
@@ -359,17 +363,55 @@ is($langs[$#langs], "sv", "pick up fallback language");
 $ENV{HTTP_ACCEPT_LANGUAGE} = "en-US";
 @langs = $fm->get_languages();
 ok(grep(/^en$/, @langs), "pick up super-languages");
+ok(grep(/^en-us$/, @langs), "smash langtags to lowercase.");
+
+$ENV{HTTP_ACCEPT_LANGUAGE} = "en-us,de;q=0.7,fr-ca;q=0.3";
+@langs = $fm->get_languages();
+is($langs[1], "de", "parsed q-format language header");
+ok(grep(/^fr$/, @langs), "pick up super-languages");
+is($langs[$#langs], "sv", "pick up fallback language");
 
 =end testing
 
 =cut
 
+#
+# This routine as written in v<=0.79 only supported Netscape. IE uses an
+# optional feature of the HTTP_ACCEPT_LANGUAGE header to provide a preference
+# value (q=n.n) for languages. It also does not put spaces in the header,
+# whereas Netscape does. The code below should parse both types.
+#
+# An example Netscape header: HTTP_ACCEPT_LANGUAGE=en-US, en, fr-CA
+# The same choices in IE 5: HTTP_ACCEPT_LANGUAGE=en-us,en;q=0.7,fr-ca;q=0.3
+#
+#  --m. knox <segfault@hardline.org>
+#
+
 sub get_languages {
     my $self = shift;
-    my @langs = split ", ", $ENV{HTTP_ACCEPT_LANGUAGE};
+
+    # split on the comma to get elements. some may have ;q=n.n attached
+    # and there may be spaces.
+	my @temp = split ",", CGI->http('HTTP_ACCEPT_LANGUAGE');
+
+    my @langs;
+    foreach my $item (@temp)
+    {
+        # lose any spaces
+        $item =~ /(\S+)/;
+        $item = $1;
+
+        # lose any q= preference values (the ordering is enough preference)
+        if ($item =~ /^(\S+);q=\d+.\d+/)
+        {
+            $item = $1;
+        }
+        push @langs, $item;
+    }
+
     push @langs, map { I18N::LangTags::super_languages($_) } @langs;
     push @langs, $self->{fallback_language} if $self->{fallback_language};
-    return @langs;
+    return map lc(), @langs;
 }
 
 

@@ -3,12 +3,12 @@
 # the file COPYING for details.
 
 #
-# $Id: FormMagick.pm,v 1.112 2002/04/04 17:18:42 skud Exp $
+# $Id: FormMagick.pm,v 1.114 2002/04/12 20:23:26 skud Exp $
 #
 
 package    CGI::FormMagick;
 
-my $VERSION = $VERSION = "0.79";
+my $VERSION = $VERSION = "0.80";
 
 use XML::Parser;
 use Text::Template;

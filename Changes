@@ -1,5 +1,9 @@
 Revision history for Perl extension FormMagick.
 
+0.80
+----
+Langtags are now smashed to lowercase throughout.
+
 0.79
 ----
 Added lexicon params, for variable interpolation in l10n'd strings.
