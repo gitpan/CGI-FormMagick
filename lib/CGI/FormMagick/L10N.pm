@@ -88,7 +88,7 @@ BEGIN: {
     use lib "lib/";
 }
 
-$ENV{HTTP_ACCEPT_LANGUAGE} = 'fr, en, de';
+$ENV{HTTP_ACCEPT_LANGUAGE} = 'fr,en,de';
 my $fm = CGI::FormMagick->new(type => 'file', source => "t/lexicon.xml");
 $fm->parse_xml();   # suck in lexicon without display()ing
 
@@ -126,7 +126,7 @@ you follow that link.
 sub check_l10n {
     my $self = shift;
     print qq( <p>Your choice of language: $ENV{HTTP_ACCEPT_LANGUAGE}</p>);
-    my @langs = split(/, /, $ENV{HTTP_ACCEPT_LANGUAGE});
+    my @langs = split(/,/, $ENV{HTTP_ACCEPT_LANGUAGE});
     foreach my $lang (@langs) {
         print qq(<h2>Language: $lang</h2>);
     }
@@ -240,7 +240,12 @@ ok(grep(/^en$/, @langs), "pick up super-languages");
 
 sub get_languages {
     my $self = shift;
-    my @langs = split ", ", $ENV{HTTP_ACCEPT_LANGUAGE};
+    my @langs;
+    foreach my $lang (split (",", $ENV{HTTP_ACCEPT_LANGUAGE}))
+    {
+	$lang =~ /(\S+)/;
+	push @langs, $1;
+    }
     push @langs, map { I18N::LangTags::super_languages($_) } @langs;
     push @langs, $self->{fallback_language} if $self->{fallback_language};
     return @langs;

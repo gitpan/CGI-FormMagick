@@ -3,12 +3,12 @@
 # the file COPYING for details.
 
 #
-# $Id: FormMagick.pm,v 1.108 2002/03/19 17:54:03 skud Exp $
+# $Id: FormMagick.pm,v 1.111 2002/04/03 18:07:23 skud Exp $
 #
 
 package    CGI::FormMagick;
 
-my $VERSION = $VERSION = "0.75";
+my $VERSION = $VERSION = "0.77";
 
 use XML::Parser;
 use Text::Template;
@@ -27,7 +27,13 @@ use Carp;
 
 use constant 'FIRST_PAGENUM' => 0; 
 
-use vars qw( $AUTOLOAD );
+use vars qw( $AUTOLOAD @ISA @EXPORT);
+
+@ISA = qw( Exporter );
+@EXPORT = qw(
+    wherenext
+    go_to_finish
+);
 
 =pod 
 
@@ -377,6 +383,99 @@ sub display {
     $self->clear_navigation_params(); 
     
 } 
+
+=head1 RANDOM USEFUL METHODS
+
+=head2 $fm->cgi()
+
+Returns the CGI object that FormMagick is using.
+
+=for testing
+local $fm->{cgi} = CGI->new("");
+isa_ok($fm->cgi(), 'CGI');
+
+=cut
+
+sub cgi {
+    my $self = shift;
+    return $self->{cgi};
+}
+
+=head2 $fm->wherenext($pagename);
+
+Set the magic "wherenext" CGI parameter, which tells FormMagick which
+page to display next.  Particularly useful when used in a page's
+post-event routine, to (for instance) go to a different next page
+depending on what the user entered on the last page.
+
+This method is also exported so you can use it in the form itself, for
+instance:
+
+    <page post-event="wherenext('SomePage')">
+
+With no args, returns the value of the "wherenext" parameter.
+
+=for testing
+local $fm->{cgi} = CGI->new("");
+can_ok('main', 'wherenext');
+is($fm->wherenext(), undef, "wherenext starts out undef");
+$fm->wherenext("Foo");
+is($fm->wherenext(), "Foo", "Set wherenext");
+$fm->wherenext(undef);
+is($fm->wherenext(), undef, "wherenext returns to undef");
+
+=cut
+
+sub wherenext {
+    my ($self, $where) = @_;
+    return undef unless $self->cgi()->isa('CGI');
+    if (@_ > 1) {
+        if (defined $where) {
+            $self->cgi->param(-name => 'wherenext', -value => $where);
+        } else {
+            $self->cgi->delete('wherenext');
+        }
+    }
+    return $self->cgi->param('wherenext');
+}
+
+=head2 $fm->go_to_finish()
+
+Like wherenext(), except that it says to go to the finish and perform
+the form post-event and do all the things that would ordinarily be done
+when a user clicks the "Finish" button.  Can be used as a method or as
+an exported function, so you can do things like:
+
+    <page post-event="go_to_finish()">
+
+=for testing
+local $fm->{cgi} = CGI->new("");
+can_ok('main', 'go_to_finish');
+is($fm->cgi->param('Finish'), undef, "Finish starts out undef");
+$fm->go_to_finish();
+is($fm->cgi->param('Finish'), 1, "Finish is set");
+
+=cut
+
+sub go_to_finish {
+    my ($self) = @_;
+    $self->cgi->param(-name => 'Finish', -value => 1);
+}
+
+=begin blah
+
+=head2 $fm->go_to_start()
+
+Like wherenext(), except that it says to go to the finish and perform
+the form post-event and do all the things that would ordinarily be done
+when a user clicks the "Finish" button.
+
+=end blah
+
+=cut
+
+sub go_to_start {
+}
 
 =head1 FORMMAGICK XML TUTORIAL
 

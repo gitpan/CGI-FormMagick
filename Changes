@@ -1,5 +1,12 @@
 Revision history for Perl extension FormMagick.
 
+0.77
+----
+Added accessor method $fm->cgi()
+
+Added convenience function $fm->wherenext() to set the magic wherenext
+variable for skipping pages etc.
+
 0.75
 ----
 

@@ -11,7 +11,7 @@
 #
 
 #
-# $Id: HTML.pm,v 1.56 2002/03/18 20:52:28 skud Exp $
+# $Id: HTML.pm,v 1.57 2002/03/26 19:00:36 skud Exp $
 #
 
 package    CGI::FormMagick;
@@ -192,7 +192,6 @@ form and table close tags and stuff.
 sub print_page_footer {
     my $fm = shift;
   
-    print $fm->{cgi}->state_field();
     print "</table>\n</form>\n";
 }
 
